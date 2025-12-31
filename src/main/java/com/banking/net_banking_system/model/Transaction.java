@@ -9,6 +9,37 @@ import java.time.Instant;
 @Entity
 @Table(name = "Transaction")
 public class Transaction {
+    public Long getTransactionId() {
+        return transactionId;
+    }
+
+    public void setTransactionId(Long transactionId) {
+        this.transactionId = transactionId;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public void setCreatedAT(Instant createdAT) {
+        this.createdAT = createdAT;
+    }
+
+    public void setAmount(Long amount) {
+        this.amount = amount;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public Instant getCreatedAT() {
+        return createdAT;
+    }
+
+    public Long getAmount() {
+        return amount;
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
