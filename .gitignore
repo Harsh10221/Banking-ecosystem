@@ -32,3 +32,4 @@ build/
 ### VS Code ###
 .vscode/
 .env
+/.apt_generated_tests/
