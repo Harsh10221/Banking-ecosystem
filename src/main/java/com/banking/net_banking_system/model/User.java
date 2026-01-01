@@ -11,7 +11,7 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long userId;
 
     @NotBlank(message = "Full name is required")
     @Column(nullable = false)
@@ -57,11 +57,11 @@ public class User {
     }
 
 	public Long getId() {
-		return id;
+		return userId;
 	}
 
 	public void setId(Long id) {
-		this.id = id;
+		this.userId = id;
 	}
 
 	public String getFullName() {
