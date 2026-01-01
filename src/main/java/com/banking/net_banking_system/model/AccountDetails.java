@@ -28,7 +28,7 @@ public class AccountDetails {
     private LocalDateTime createdAt;
 
     @OneToOne
-    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    @JoinColumn(name = "user_id", referencedColumnName = "userId")
     private User user;
 
     @PrePersist

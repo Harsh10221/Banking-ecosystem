@@ -36,7 +36,7 @@ public class AuthService {
 
 
 
-        if (!passwordEncoder.matches(userObj.getPassword(), password)) {
+        if (!passwordEncoder.matches(password,userObj.getPassword())) {
                 return "Incorrect password";
 
             }
