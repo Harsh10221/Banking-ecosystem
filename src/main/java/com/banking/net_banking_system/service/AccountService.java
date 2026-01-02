@@ -22,6 +22,10 @@ public class AccountService {
 
     @Transactional
     public User registerNewUser(User user, String accountType) {
+    	if (user.getPassword() == null || user.getPassword().isEmpty()) {
+            throw new RuntimeException("Password field is missing in request body.");
+        }
+    	
     	// 1. HASH THE PASSWORD before saving
         String encodedPassword = passwordEncoder.encode(user.getPassword());
         user.setPassword(encodedPassword);
