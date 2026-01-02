@@ -1,10 +1,14 @@
 package com.banking.net_banking_system.model;
 
 import jakarta.persistence.*;
+import lombok.Data;
+import lombok.ToString;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
+@Data
 @Table(name = "account_details")
 public class AccountDetails {
 
@@ -29,6 +33,7 @@ public class AccountDetails {
 
     @OneToOne
     @JoinColumn(name = "user_id", referencedColumnName = "userId")
+	@ToString.Exclude
     private User user;
 
     @PrePersist
@@ -67,7 +72,8 @@ public class AccountDetails {
 	}
 
 	public void setBalance(BigDecimal balance) {
-		this.balance = balance;
+		System.out.println("from set "+balance);
+		 this.balance = balance;
 	}
 
 	public String getStatus() {

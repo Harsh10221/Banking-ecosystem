@@ -3,9 +3,13 @@ package com.banking.net_banking_system.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
+import lombok.Data;
+
 import java.time.LocalDateTime;
 
+
 @Entity
+@Data
 @Table(name = "users")
 public class User {
 
@@ -64,29 +68,6 @@ public class User {
 		this.userId = id;
 	}
 
-	public String getFullName() {
-		return fullName;
-	}
-
-	public void setFullName(String fullName) {
-		this.fullName = fullName;
-	}
-
-	public String getEmail() {
-		return email;
-	}
-
-	public void setEmail(String email) {
-		this.email = email;
-	}
-
-	public String getPhone() {
-		return phone;
-	}
-
-	public void setPhone(String phone) {
-		this.phone = phone;
-	}
 
 	public String getPassword() {
 		return password;
@@ -96,48 +77,8 @@ public class User {
 		this.password = password;
 	}
 
-	public String getPan() {
-		return pan;
-	}
-
-	public void setPan(String pan) {
-		this.pan = pan;
-	}
-
-	public String getAadhar() {
-		return aadhar;
-	}
-
-	public void setAadhar(String aadhar) {
-		this.aadhar = aadhar;
-	}
-
-	public KycStatus getKycStatus() {
-		return kycStatus;
-	}
-
-	public void setKycStatus(KycStatus kycStatus) {
-		this.kycStatus = kycStatus;
-	}
-
-	public String getAccountType() {
-		return accountType;
-	}
-
 	public void setAccountType(String accountType) {
 		this.accountType = accountType;
-	}
-
-	public LocalDateTime getCreatedAt() {
-		return createdAt;
-	}
-
-	public void setCreatedAt(LocalDateTime createdAt) {
-		this.createdAt = createdAt;
-	}
-
-	public AccountDetails getAccountDetails() {
-		return accountDetails;
 	}
 
 	public void setAccountDetails(AccountDetails accountDetails) {
