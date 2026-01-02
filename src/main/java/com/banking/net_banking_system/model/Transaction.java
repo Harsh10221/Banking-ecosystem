@@ -2,44 +2,39 @@ package com.banking.net_banking_system.model;
 
 
 import jakarta.persistence.*;
-import jdk.jshell.Snippet;
-
+import lombok.Data;
 import java.time.Instant;
 
+
 @Entity
+@Data
 @Table(name = "Transaction")
 public class Transaction {
-    public Long getTransactionId() {
-        return transactionId;
+
+
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = Instant.now();
     }
 
-    public void setTransactionId(Long transactionId) {
-        this.transactionId = transactionId;
+    public void setType(Type input ) {
+        this.transactionType = input;
     }
 
-    public void setUser(User user) {
-        this.user = user;
+    public Type getType() {
+        return transactionType;
     }
 
-    public void setCreatedAT(Instant createdAT) {
-        this.createdAT = createdAT;
-    }
+//    public void setAmount(Long amount) {
+//        this.amount = amount;
+//    }
 
-    public void setAmount(Long amount) {
-        this.amount = amount;
-    }
-
-    public User getUser() {
-        return user;
-    }
 
     public Instant getCreatedAT() {
-        return createdAT;
+        return createdAt;
     }
 
-    public Long getAmount() {
-        return amount;
-    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -49,9 +44,11 @@ public class Transaction {
     @JoinColumn(name = "user_id",nullable = false )
     private User user;
 
-    private enum type{DEPOSIT,WITHDRAW,AUTO_PAY};
+    public enum Type{DEPOSIT,WITHDRAW,AUTO_PAY};
+    @Enumerated(EnumType.STRING)
+    private Type transactionType;
     private enum status{PENDING, APPROVED, REJECTED, EXPIRED};
-    private Instant createdAT;
+    private Instant createdAt ;
     private Long amount;
 
 
