@@ -1,6 +1,8 @@
 package com.banking.net_banking_system.configuration;
 
+import io.jsonwebtoken.Jwt;
 import jakarta.servlet.Filter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -13,16 +15,21 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 public class SecurityConfig {
 
+    @Autowired
+    private JwtAuthFilter jwtAuthFilter;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
 
         http
             .csrf(csrf -> csrf.disable()) // Disable CSRF for Postman testing
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/", "/api/onboarding/**","/api/auth/**","/api/transaction/**","api/**").permitAll() // Allow these endpoints
-                .anyRequest().authenticated() // Protect everything else
-            );
-//                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .requestMatchers("/", "/api/onboarding/**","/api/auth/**").permitAll() // Allow these endpoints
+                    .requestMatchers("/api/transaction/deposit","/api/transaction/withdraw").authenticated()
+                .anyRequest().authenticated()
+            )
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
