@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Objects;
 
 @Controller
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -29,6 +30,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     @Value("${app.jwt.secret}")
     private String secretKey;
+
+    private String accessToken;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -38,6 +41,21 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
 
         if (cookies != null) {
+        System.out.println(cookies[0].getName());
+
+        for (Cookie cookie : cookies) {
+            if (Objects.equals(cookie.getName(), "accessToken")) {
+                System.out.println("I reached here");
+                accessToken = cookie.getValue();
+                break;
+            }
+
+        }
+
+//        System.out.println("Access token" + accessToken);
+        }
+        if (accessToken != null) {
+
             SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
 
             try {
@@ -59,7 +77,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     WebAuthenticationDetails details = (WebAuthenticationDetails) authToken.getDetails();
 
                     String ipAddress = details.getRemoteAddress();
-                    String sessionId = details.getSessionId();
+//                    String sessionId = details.getSessionId();
 
 
 //                    System.out.println("User IP Address: " + ipAddress);

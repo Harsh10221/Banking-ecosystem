@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -23,14 +24,16 @@ public class SecurityConfig {
 
 
         http
-            .csrf(csrf -> csrf.disable()) // Disable CSRF for Postman testing
-            .authorizeHttpRequests(auth -> auth
+                .csrf(csrf -> csrf.disable()) // Disable CSRF for Postman testing
+                .securityContext(context -> context.requireExplicitSave(false))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Add this!
+                .authorizeHttpRequests(auth -> auth
 
-                .requestMatchers("/", "/api/onboarding/**","/api/auth/**","/WEB-INF/jsp/**").permitAll() // Allow these endpoints
-                    .requestMatchers("/api/transaction/deposit","/api/transaction/withdraw").authenticated()
-                .anyRequest().authenticated()
-            ).formLogin(login -> login.disable())
-            .httpBasic(basic -> {});
+                        .requestMatchers("/", "/api/onboarding/**", "/api/auth/**","/login", "/WEB-INF/jsp/**").permitAll() // Allow these endpoints
+                        .requestMatchers("/api/transaction/deposit", "/api/transaction/withdraw").authenticated()
+                        .anyRequest().authenticated()
+                ).formLogin(login -> login.disable())
+                .httpBasic(basic -> basic.disable())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
