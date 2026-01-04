@@ -1,5 +1,6 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
     pageEncoding="UTF-8"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -99,8 +100,14 @@
             <a href="#" onclick="showPage('home')" class="sidebar-link active flex items-center gap-3 p-3 rounded-lg text-slate-600 hover:bg-gray-50 transition-all" id="nav-home">
                 <i class="fa-solid fa-house w-5"></i> <span>Home</span>
             </a>
+            <a href="#" onclick="showPage('transactions')" 
+			   class="sidebar-link flex items-center gap-3 p-3 rounded-lg text-slate-600 hover:bg-gray-50 transition-all" 
+			   id="nav-transactions">
+			    <i class="fa-solid fa-money-bill-transfer w-5"></i> 
+			    <span>Deposits & Withdrawals</span>
+			</a>
             <a href="#" onclick="showPage('accounts')" class="sidebar-link flex items-center gap-3 p-3 rounded-lg text-slate-600 hover:bg-gray-50 transition-all" id="nav-accounts">
-                <i class="fa-solid fa-building-columns w-5"></i> <span>Accounts & Deposits</span>
+                <i class="fa-solid fa-building-columns w-5"></i> <span>Accounts & FD</span>
             </a>
             <a href="#" onclick="showPage('transfer')" class="sidebar-link flex items-center gap-3 p-3 rounded-lg text-slate-600 hover:bg-gray-50 transition-all" id="nav-transfer">
                 <i class="fa-solid fa-paper-plane w-5"></i> <span>Fund Transfer</span>
@@ -147,7 +154,7 @@
                     <div class="w-8 h-8 rounded-full bg-slate-200 overflow-hidden cursor-pointer" onclick="showPage('profile')">
                         <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Rajesh" alt="avatar">
                     </div>
-                    <a href="index.html"><button class="text-red-600 font-medium text-xs sm:text-sm hidden sm:block">Logout</button></a>
+                    <a href="/logout"><button class="text-red-600 font-medium text-xs sm:text-sm hidden sm:block">Logout</button></a>
                 </div>
             </div>
         </header>
@@ -228,12 +235,12 @@
                         </div>
 
                         <!-- Recent Transactions -->
-                        <div class="bg-white rounded-2xl border p-6 card-shadow">
+                        <%-- <div class="bg-white rounded-2xl border p-6 card-shadow">
                             <h3 class="font-bold text-slate-800 mb-4 flex items-center justify-between">
                                 Recent Transactions
                                 <button class="text-red-600 text-sm font-medium">Download <i class="fa-solid fa-download ml-1"></i></button>
                             </h3>
-                            <div class="space-y-4">
+                            <!-- <div class="space-y-4">
                                 <div class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
                                     <div class="flex items-center gap-3 sm:gap-4">
                                         <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center font-bold text-gray-500 flex-shrink-0">Z</div>
@@ -254,8 +261,59 @@
                                         <p class="text-[8px] sm:text-[10px] text-gray-400 uppercase tracking-wider">NFT Ref: SAL-2025</p>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
+                            </div> -->
+                            <div class="space-y-4">
+							    <c:forEach items="${user.transactions}" var="tx">
+							        <div class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
+							            <div class="flex items-center gap-3 sm:gap-4">
+							                <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center font-bold text-gray-500 flex-shrink-0">
+							                    ${tx.transactionType.toString().charAt(0)}
+							                </div>
+							                <div class="min-w-0">
+							                    <p class="text-sm font-semibold truncate">${tx.transactionType}</p>
+							                    <p class="text-[10px] sm:text-xs text-gray-400">${tx.createdAt}</p>
+							                </div>
+							            </div>
+							            <div class="text-right flex-shrink-0">
+							                <p class="text-sm font-bold ${tx.transactionType == 'WITHDRAW' ? 'text-red-500' : 'text-green-500'}">
+							                    ${tx.transactionType == 'WITHDRAW' ? '-' : '+'} ₹ ${tx.amount}
+							                </p>
+							            </div>
+							        </div>
+							    </c:forEach>
+							</div>
+                        </div> --%>
+                        <div class="bg-white rounded-2xl border p-6 card-shadow">
+						    <h3 class="font-bold text-slate-800 mb-4 flex items-center justify-between">
+						        Recent Transactions
+						        <button class="text-red-600 text-sm font-medium">Download <i class="fa-solid fa-download ml-1"></i></button>
+						    </h3>
+						    <div class="space-y-4">
+						        <c:forEach items="${transactions}" var="tx">
+								    <div class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
+								        <div class="flex items-center gap-3 sm:gap-4">
+								            <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0
+								                ${tx.transactionType == 'DEPOSIT' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}">
+								                <i class="fa-solid ${tx.transactionType == 'DEPOSIT' ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'}"></i>
+								            </div>
+								            <div class="min-w-0">
+								                <p class="text-sm font-semibold truncate">${tx.transactionType}</p>
+								                <p class="text-[10px] sm:text-xs text-gray-400">${tx.createdAT}</p>
+								            </div>
+								        </div>
+								        <div class="text-right flex-shrink-0">
+								            <p class="text-sm font-bold ${tx.transactionType == 'DEPOSIT' ? 'text-green-600' : 'text-red-600'}">
+								                ${tx.transactionType == 'DEPOSIT' ? '+' : '-'} ₹ ${tx.amount}
+								            </p>
+								        </div>
+								    </div>
+								</c:forEach>
+						        
+						        <c:if test="${empty transactions}">
+						            <p class="text-center text-gray-400 text-sm py-4">No recent transactions found.</p>
+						        </c:if>
+						    </div>
+						</div>
                     </div>
 
                     <!-- Side Offers and Features -->
@@ -315,6 +373,65 @@
                     </div>
                 </div>
             </section>
+            
+            <!-- DEPOSITS & WITHDRAW -->
+            <section id="page-transactions" class="page-section hidden space-y-6">
+			    <div class="max-w-2xl mx-auto bg-white rounded-2xl border card-shadow p-8">
+			        <h3 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+			            <i class="fa-solid fa-vault text-red-600"></i> Manage Your Funds
+			        </h3>
+			        
+			        <form id="transaction-form" onsubmit="handleTransaction(event)" class="space-y-5">
+			            <input type="hidden" id="tx-userId" value="${user.userId}">
+			            
+			            <div>
+			                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Account Number</label>
+			                <div class="relative">
+			                    <i class="fa-solid fa-hashtag absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+			                    <input type="text" id="tx-accountNumber" value="${user.accountDetails.accountNumber}" readonly
+			                        class="w-full pl-10 pr-4 py-3 border rounded-xl bg-gray-50 text-gray-500 cursor-not-allowed outline-none text-sm">
+			                </div>
+			            </div>
+			
+			            <div>
+			                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Transaction Type</label>
+			                <div class="grid grid-cols-2 gap-4">
+			                    <label class="cursor-pointer">
+			                        <input type="radio" name="type" value="Deposit" class="peer hidden" required>
+			                        <div class="flex items-center justify-center gap-2 p-4 border rounded-xl peer-checked:border-green-500 peer-checked:bg-green-50 peer-checked:text-green-700 transition-all">
+			                            <i class="fa-solid fa-circle-plus text-lg"></i>
+			                            <span class="font-bold text-sm">Deposit</span>
+			                        </div>
+			                    </label>
+			                    <label class="cursor-pointer">
+			                        <input type="radio" name="type" value="Withdraw" class="peer hidden">
+			                        <div class="flex items-center justify-center gap-2 p-4 border rounded-xl peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-700 transition-all">
+			                            <i class="fa-solid fa-circle-minus text-lg"></i>
+			                            <span class="font-bold text-sm">Withdraw</span>
+			                        </div>
+			                    </label>
+			                </div>
+			            </div>
+			
+			            <div>
+			                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Amount (₹)</label>
+			                <div class="relative">
+			                    <i class="fa-solid fa-indian-rupee-sign absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+			                    <input type="number" id="tx-amount" placeholder="0.00" required min="1"
+			                        class="w-full pl-10 pr-4 py-3 border rounded-xl bg-white focus:ring-1 focus:ring-red-500 outline-none font-bold text-lg">
+			                </div>
+			            </div>
+			
+			            <div class="pt-4">
+			                <button type="submit" id="tx-submit-btn" class="w-full py-4 btn-primary rounded-xl font-bold text-sm shadow-lg flex items-center justify-center gap-2">
+			                    <i class="fa-solid fa-paper-plane"></i> Process Transaction
+			                </button>
+			            </div>
+			            
+			            <div id="tx-message" class="hidden p-4 rounded-xl text-center text-sm font-medium"></div>
+			        </form>
+			    </div>
+			</section>
 
             <!-- ACCOUNTS / DEPOSITS PAGE -->
             <section id="page-accounts" class="page-section hidden space-y-6">
@@ -523,7 +640,7 @@
                     <div class="lg:col-span-2 space-y-6">
                         <div class="bg-white p-6 rounded-2xl border card-shadow">
                             <h3 class="font-bold text-slate-800 mb-4">Active Loans</h3>
-                            <div class="p-4 sm:p-5 border rounded-2xl relative overflow-hidden bg-white hover:border-red-200 transition-all">
+                            <!-- <div class="p-4 sm:p-5 border rounded-2xl relative overflow-hidden bg-white hover:border-red-200 transition-all">
                                 <div class="absolute top-0 left-0 w-1 sm:w-2 h-full bg-red-600"></div>
                                 <div class="flex justify-between items-start mb-4">
                                     <div>
@@ -544,7 +661,24 @@
                                     <button class="flex-1 py-2 border rounded-lg text-xs font-bold hover:bg-gray-50">Details</button>
                                     <button class="flex-1 py-2 bg-red-600 text-white rounded-lg text-xs font-bold">Pay EMI</button>
                                 </div>
-                            </div>
+                            </div> -->
+                            <c:forEach items="${user.loans}" var="loan">
+							    <div class="p-4 sm:p-5 border rounded-2xl relative overflow-hidden bg-white hover:border-red-200 transition-all mb-4">
+							        <div class="absolute top-0 left-0 w-1 sm:w-2 h-full bg-red-600"></div>
+							        <div class="flex justify-between items-start mb-4">
+							            <div>
+							                <h4 class="font-bold text-base sm:text-lg">${loan.loanType}</h4>
+							                <p class="text-[10px] text-gray-500">ID: ${loan.loanId}</p>
+							            </div>
+							            <span class="text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">${loan.status}</span>
+							        </div>
+							        <div class="grid grid-cols-3 gap-2 sm:gap-4 mb-6 text-center sm:text-left">
+							            <div><p class="text-[8px] sm:text-[10px] text-gray-400 uppercase">Sanctioned</p><p class="font-bold text-xs sm:text-base">₹ ${loan.loanAmount}</p></div>
+							            <div><p class="text-[8px] sm:text-[10px] text-gray-400 uppercase">EMI</p><p class="font-bold text-xs sm:text-base">₹ ${loan.monthlyEmiAmount}</p></div>
+							            <div><p class="text-[8px] sm:text-[10px] text-gray-400 uppercase">O/S</p><p class="font-bold text-red-600 text-xs sm:text-base">₹ ${loan.totalAmountRemaining}</p></div>
+							        </div>
+							    </div>
+							</c:forEach>
                         </div>
                     </div>
                 </div>
@@ -658,6 +792,60 @@
                 backdrop.classList.add('hidden');
             }
         }
+        
+        async function handleTransaction(e) {
+            e.preventDefault();
+            
+            const btn = document.getElementById('tx-submit-btn');
+            const msgBox = document.getElementById('tx-message');
+            const type = document.querySelector('input[name="type"]:checked').value; 
+            const accountNumber = document.getElementById('tx-accountNumber').value;
+            const amount = document.getElementById('tx-amount').value;
+            const userId = document.getElementById('tx-userId').value;
+
+            // Reset UI
+            msgBox.classList.add('hidden');
+            btn.disabled = true;
+            const originalText = btn.innerText;
+            btn.innerText = 'Processing...';
+
+            // Determine correct endpoint based on type
+            const endpoint = type === 'Deposit' 
+                ? '/api/transaction/deposit' 
+                : '/api/transaction/withdraw';
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        accountNumber: accountNumber,
+                        type: type,
+                        amount: amount,
+                        userId: userId
+                    })
+                });
+
+                const result = await response.text();
+
+                if (response.ok && result === "success") {
+                    msgBox.innerText = type + " Successful!";
+                    msgBox.className = "p-4 rounded-xl text-center text-sm font-medium bg-green-50 text-green-700";
+                    msgBox.classList.remove('hidden');
+                    
+                    // Refresh balance on page after a short delay
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    throw new Error(result || "Transaction failed");
+                }
+            } catch (err) {
+                msgBox.innerText = "Error: " + err.message;
+                msgBox.className = "p-4 rounded-xl text-center text-sm font-medium bg-red-50 text-red-700";
+                msgBox.classList.remove('hidden');
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
+        }
 
         function showPage(pageId) {
             // Hide all pages
@@ -682,15 +870,16 @@
 
             // Update Header Title
             const titles = {
-                'home': 'Welcome, Rajesh!',
-                'accounts': 'Accounts & Deposits',
-                'transfer': 'Fund Transfer',
-                'statement': 'Statements',
-                'loans': 'Loans',
-                'cards': 'Cards',
-                'settings': 'Settings',
-                'profile': 'My Profile'
-            };
+			    'home': 'Welcome, ${user.fullName}!',
+			    'accounts': 'Accounts & Deposits',
+			    'transfer': 'Fund Transfer',
+			    'transactions': 'Deposits & Withdrawals', // Add this line
+			    'statement': 'Statements',
+			    'loans': 'Loans',
+			    'cards': 'Cards',
+			    'settings': 'Settings',
+			    'profile': 'My Profile'
+			};
             document.getElementById('page-title').innerText = titles[pageId];
 
             // Scroll container to top

@@ -1,6 +1,8 @@
 package com.banking.net_banking_system.controller;
 
 import com.banking.net_banking_system.service.AuthService;
+
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -33,6 +35,16 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                                  .body(Map.of("success", false, "message", result));
         }
+    }
+    
+    @GetMapping("/logout")
+    public String logout(HttpServletResponse response) {
+        Cookie cookie = new Cookie("accessToken", null);
+        cookie.setPath("/");
+        cookie.setHttpOnly(true);
+        cookie.setMaxAge(0); // Delete the cookie
+        response.addCookie(cookie);
+        return "redirect:/login";
     }
 
 }

@@ -1,11 +1,15 @@
 package com.banking.net_banking_system.controller;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import com.banking.net_banking_system.model.Transaction;
 import com.banking.net_banking_system.model.User;
+import com.banking.net_banking_system.repository.TransactionRepository;
 import com.banking.net_banking_system.repository.UserRepository;
 import com.banking.net_banking_system.service.AccountService;
 
@@ -17,6 +21,9 @@ public class OnboardingController {
     
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private TransactionRepository transactionRepository;
 
     @GetMapping("/")
     public String showLandingPage() {
@@ -38,6 +45,10 @@ public class OnboardingController {
         
         // Pass the user object to the JSP
         model.addAttribute("user", user);
+        model.addAttribute("account", user.getAccountDetails());
+        model.addAttribute("loans", user.getLoans());
+        List<Transaction> transactions = transactionRepository.findTop5ByUserOrderByCreatedAtDesc(user);
+        model.addAttribute("transactions", transactions);
         return "home";
     }
 
