@@ -1,9 +1,12 @@
 package com.banking.net_banking_system.configuration;
 
+import com.banking.net_banking_system.utils.ResponseUtils;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -37,22 +40,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
         Cookie[] cookies = request.getCookies();
-        System.out.println("This is cookies" + Arrays.toString(cookies));
+//        System.out.println("This is cookies" + Arrays.toString(cookies));
 
 
         if (cookies != null) {
-        System.out.println(cookies[0].getName());
+            System.out.println(cookies[0].getName());
 
-        for (Cookie cookie : cookies) {
-            if (Objects.equals(cookie.getName(), "accessToken")) {
-                System.out.println("I reached here");
-                accessToken = cookie.getValue();
-                break;
+            for (Cookie cookie : cookies) {
+                if (Objects.equals(cookie.getName(), "AccessToken")) {
+                    accessToken = cookie.getValue();
+                    break;
+                }
+
             }
 
-        }
-
-//        System.out.println("Access token" + accessToken);
         }
         if (accessToken != null) {
 
@@ -73,12 +74,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
                     SecurityContextHolder.getContext().setAuthentication(authToken);
 
-
                     WebAuthenticationDetails details = (WebAuthenticationDetails) authToken.getDetails();
 
                     String ipAddress = details.getRemoteAddress();
 //                    String sessionId = details.getSessionId();
-
 
 //                    System.out.println("User IP Address: " + ipAddress);
 //                    System.out.println("User authenticated: " + userId);
@@ -86,11 +85,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     filterChain.doFilter(request, response);
                 }
 
+            } catch (ExpiredJwtException e) {
+                ResponseUtils.writeErrorResponse(response, 401, "Token has expired");
+                return;
+            } catch (SignatureException e) {
+
+                ResponseUtils.writeErrorResponse(response, 401, "Invalid token signature");
+                return;
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                ResponseUtils.writeErrorResponse(response, 401, "Authentication failed: " + e.getMessage());
+                return; // Crucial: return so doFilter is NOT called
             }
 
-            System.out.println("I am inside cookie if statment");
             return;
 
 
