@@ -25,10 +25,14 @@ public class AuthService {
     private PasswordEncoder passwordEncoder;
 
 
+//@Value("${app.jwt.secret:HARDCODED_TEST_SECRET}")
     @Value("${app.jwt.secret}")
     private String secretKey;
 
     public String login(String email, String password, HttpServletResponse response) {
+
+//        System.out.println("Email"+email);
+//        System.out.println("Passwprd"+password);
 
         if (email == null || password == null) {
             return "Email or password required";
@@ -46,7 +50,7 @@ public class AuthService {
             return "Incorrect password";
         }
 
-        System.out.println("This is user id " + String.valueOf(userObj.getId()));
+//        System.out.println("This is user id " + String.valueOf(userObj.getId()));
 
         SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
 
@@ -55,7 +59,7 @@ public class AuthService {
                 .signWith(key)
                 .compact();
 
-        Cookie cookie = new Cookie("AccessToken", accessToken);
+        Cookie cookie = new Cookie("accessToken", accessToken);
         cookie.setPath("/");
         cookie.setHttpOnly(true);
 

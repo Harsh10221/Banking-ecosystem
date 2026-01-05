@@ -1,6 +1,5 @@
 package com.banking.net_banking_system.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,10 +14,14 @@ import java.util.Random;
 @Service
 public class AccountService {
 
-    @Autowired
-    private UserRepository userRepository;
-    
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+	private final UserRepository userRepository;
+    private final BCryptPasswordEncoder passwordEncoder;
+
+    public AccountService(UserRepository userRepository,
+                          BCryptPasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @Transactional
     public User registerNewUser(User user, String accountType) {
