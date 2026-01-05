@@ -1,6 +1,7 @@
 package com.banking.net_banking_system.configuration;
 
 import io.jsonwebtoken.Jwt;
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.Filter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -28,7 +29,7 @@ public class SecurityConfig {
                 .securityContext(context -> context.requireExplicitSave(false))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Add this!
                 .authorizeHttpRequests(auth -> auth
-
+                        .dispatcherTypeMatchers(DispatcherType.FORWARD).permitAll() // Must have this!
                         .requestMatchers("/", "/api/onboarding/**", "/api/auth/**","/login/**", "/WEB-INF/jsp/**").permitAll() // Allow these endpoints
                         .requestMatchers("/api/transaction/deposit", "/api/transaction/withdraw", "/home").authenticated()
                         .anyRequest().authenticated()

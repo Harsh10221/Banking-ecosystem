@@ -27,6 +27,7 @@ public class OnboardingController {
 
     @GetMapping("/")
     public String showLandingPage() {
+//        System.out.println("Reached");
         return "index";
     }
     

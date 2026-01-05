@@ -25,6 +25,7 @@ public class AuthService {
     private PasswordEncoder passwordEncoder;
 
 
+//@Value("${app.jwt.secret:HARDCODED_TEST_SECRET}")
     @Value("${app.jwt.secret}")
     private String secretKey;
 
@@ -46,7 +47,7 @@ public class AuthService {
             return "Incorrect password";
         }
 
-        System.out.println("This is user id " + String.valueOf(userObj.getId()));
+//        System.out.println("This is user id " + String.valueOf(userObj.getId()));
 
         SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
 
