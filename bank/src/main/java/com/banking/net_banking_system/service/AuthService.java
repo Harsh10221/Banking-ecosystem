@@ -31,6 +31,9 @@ public class AuthService {
 
     public String login(String email, String password, HttpServletResponse response) {
 
+//        System.out.println("Email"+email);
+//        System.out.println("Passwprd"+password);
+
         if (email == null || password == null) {
             return "Email or password required";
         }

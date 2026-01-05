@@ -20,7 +20,7 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> payload, HttpServletResponse response) {
-        String email = payload.get("username");
+        String email = payload.get("email");
         String password = payload.get("password");
 
 

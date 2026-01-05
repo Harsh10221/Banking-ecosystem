@@ -76,6 +76,12 @@ public class TransactionService {
             return "Account Number and User Id are not matched";
         }
 
+//        if (userObj.getAccountDetails().getBalance() < amount) {
+        if (userObj.getAccountDetails().getBalance().compareTo(BigDecimal.valueOf(amount)) <= 0   ) {
+            return "Balance was low: "+userObj.getAccountDetails().getBalance();
+        }
+
+
 
         newTransaction.setUser(userObj);
         newTransaction.setAmount(amount);
