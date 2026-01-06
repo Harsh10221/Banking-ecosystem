@@ -30,7 +30,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Add this!
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.FORWARD).permitAll() // Must have this!
-                        .requestMatchers("/", "/api/onboarding/**", "/api/auth/**","/login/**", "/WEB-INF/jsp/**").permitAll() // Allow these endpoints
+                        .requestMatchers("/", "/api/onboarding/**", "/api/auth/**","/login/**", "/WEB-INF/jsp/**", "/js/**", "/api/loans/**").permitAll() // Allow these endpoints
                         .requestMatchers("/api/transaction/deposit", "/api/transaction/withdraw", "/home").authenticated()
                         .anyRequest().authenticated()
                 ).formLogin(login -> login.disable())
