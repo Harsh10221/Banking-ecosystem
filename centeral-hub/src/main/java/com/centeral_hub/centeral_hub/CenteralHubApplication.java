@@ -11,3 +11,14 @@ public class CenteralHubApplication {
 	}
 
 }
+
+
+//Bank Server: Verify the User's balance in your bank_db.
+//
+//Bank Server: Send an API call to the Hub.
+//
+//Central Hub: Verify the Bank's "Master Balance" in your hub_db.
+//
+//Central Hub: Update the Ledger (Debit Bank A / Credit Bank B).
+//
+//Bank Server: Once the Hub returns "Success," finalize the transaction.
