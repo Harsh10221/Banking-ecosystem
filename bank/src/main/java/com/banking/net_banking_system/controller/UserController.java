@@ -1,12 +1,16 @@
 package com.banking.net_banking_system.controller;
 
 import com.banking.net_banking_system.service.AuthService;
-
-import jakarta.servlet.http.Cookie;
+//<<<<<<< HEAD
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+//=======
+
+import jakarta.servlet.http.Cookie;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+//>>>>>>> main
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -19,11 +23,18 @@ public class UserController {
     private AuthService authService;
 
     @PostMapping("/login")
+//<<<<<<< HEAD
+//    public String login(@RequestBody Map<String, String> payload, HttpServletResponse response) {
+//=======
     public ResponseEntity<?> login(@RequestBody Map<String, String> payload, HttpServletResponse response) {
+
         String email = payload.get("email");
         String password = payload.get("password");
 
 
+//<<<<<<< HEAD
+//        return authService.login(email, password, response);
+//=======
         String result = authService.login(email, password, response);
         
         if ("success".equalsIgnoreCase(result)) {
@@ -45,6 +56,7 @@ public class UserController {
         cookie.setMaxAge(0); // Delete the cookie
         response.addCookie(cookie);
         return "redirect:/login";
+//>>>>>>> main
     }
 
 }

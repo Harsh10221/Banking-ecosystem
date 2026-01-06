@@ -50,6 +50,7 @@ public class Transaction {
     private enum status{PENDING, APPROVED, REJECTED, EXPIRED};
     private Instant createdAt ;
     private Long amount;
+    private String destAccountNumber;
 
 
 
