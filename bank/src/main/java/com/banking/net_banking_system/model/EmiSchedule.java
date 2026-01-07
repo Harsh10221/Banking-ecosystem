@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 @Table(name = "emi_schedule")
 public class EmiSchedule {
@@ -14,6 +16,7 @@ public class EmiSchedule {
 
     @ManyToOne
     @JoinColumn(name = "loan_id", nullable = false)
+    @JsonIgnore
     private LoanDetails loan;
 
     private LocalDate dueDate;

@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.List;
 
 @Service
 public class LoanService {
@@ -49,7 +50,7 @@ public class LoanService {
             return "REJECTED: Credit score too low.";
         }
 
-        // 2. 50% DTI Gate: Reject if ongoing debt > 50% of annual income
+        // 2. Reject if ongoing debt > 50% of annual income
         BigDecimal annualIncome = loan.getAnnualIncome();
         BigDecimal dtiLimit = annualIncome.multiply(new BigDecimal("0.50"));
         if (loan.getOngoingDebt().compareTo(dtiLimit) > 0) {
@@ -58,7 +59,7 @@ public class LoanService {
             return "REJECTED: Ongoing debt exceeds 50% of annual income.";
         }
 
-        // 3. 30% Affordability Gate: Reject if loan amount > 30% of annual income
+        // 3. 30% Affordability : Reject if loan amount > 30% of annual income
         BigDecimal affordabilityLimit = annualIncome.multiply(new BigDecimal("0.30"));
         if (loan.getLoanAmount().compareTo(affordabilityLimit) > 0) {
             loan.setStatus("REJECTED");
@@ -73,7 +74,7 @@ public class LoanService {
         loan.setStartDate(LocalDate.now());
         loan.setEndDate(LocalDate.now().plusMonths(loan.getTenureMonths()));
 
-        // 5. CREDIT ACCOUNT: Update user's bank balance
+        // 5. CREDIT AMOUNT TO ACCOUNT: Update user's bank balance
         if (fullUser.getAccountDetails() != null) {
             AccountDetails account = fullUser.getAccountDetails();
             account.creditBalance(loan.getLoanAmount());
@@ -81,7 +82,7 @@ public class LoanService {
             return "ERROR: No linked bank account found for user ID: " + userId;
         }
 
-        // 6. SAVE & GENERATE SCHEDULE: Create the monthly repayment list
+        // 6. SAVE & GENERATE SCHEDULE: Create the monthly Emi repayment list
         LoanDetails savedLoan = loanRepository.save(loan);
         generateEmiSchedule(savedLoan);
 
@@ -107,13 +108,26 @@ public class LoanService {
     }
 
     private void generateEmiSchedule(LoanDetails loan) {
+        BigDecimal totalScheduled = BigDecimal.ZERO;
+        
         // Create a row for each month in the tenure
         for (int i = 1; i <= loan.getTenureMonths(); i++) {
             EmiSchedule emi = new EmiSchedule();
             emi.setLoan(loan);
-            emi.setEmiAmount(loan.getMonthlyEmiAmount());
             emi.setDueDate(LocalDate.now().plusMonths(i)); 
             emi.setStatus("UNPAID");
+
+            // Adjust the LAST EMI to handle rounding differences
+            if (i == loan.getTenureMonths()) {
+                // Last EMI = Total Repayment - (Sum of all previous EMIs)
+                BigDecimal remainingToSchedule = loan.getTotalRepaymentAmount().subtract(totalScheduled);
+                emi.setEmiAmount(remainingToSchedule);
+            } else {
+                // Normal EMI
+                emi.setEmiAmount(loan.getMonthlyEmiAmount());
+                totalScheduled = totalScheduled.add(loan.getMonthlyEmiAmount());
+            }
+
             emiScheduleRepository.save(emi);
         }
     }
@@ -137,18 +151,27 @@ public class LoanService {
         // 2. Deduct from account and update Loan tracking
         account.setBalance(account.getBalance().subtract(totalToPay));
         loan.setTotalAmountPaid(loan.getTotalAmountPaid().add(totalToPay));
-        loan.setTotalAmountRemaining(loan.getTotalAmountRemaining().subtract(totalToPay));
+        
+        // Update remaining amount
+        BigDecimal newRemaining = loan.getTotalAmountRemaining().subtract(totalToPay);
+        loan.setTotalAmountRemaining(newRemaining);
 
         // 3. Mark EMI as PAID
         emi.setStatus("PAID");
 
-        // 4. If loan is fully paid, close it
-        if (loan.getTotalAmountRemaining().compareTo(BigDecimal.ZERO) <= 0) {
+        // 4. Close loan if remaining amount is zero OR very small
+        if (newRemaining.compareTo(new BigDecimal("1.00")) < 0) {
             loan.setStatus("CLOSED");
+            loan.setTotalAmountRemaining(BigDecimal.ZERO); // Clean up the 0.04
         }
 
         loanRepository.save(loan);
         emiScheduleRepository.save(emi);
         return "SUCCESS: EMI Paid ($" + totalToPay + ")";
+    }
+    
+    // Get EMI schedule for a particular loan
+    public List<EmiSchedule> getLoanEmiSchedule(Long loanId) {
+        return emiScheduleRepository.findByLoan_LoanIdOrderByDueDateAsc(loanId);
     }
 }

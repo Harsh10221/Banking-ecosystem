@@ -12,4 +12,5 @@ import org.springframework.stereotype.Repository;
 public interface EmiScheduleRepository extends JpaRepository<EmiSchedule, Long> {
 	
 	List<EmiSchedule> findByStatusAndDueDateBefore(String status, LocalDate date);
+	List<EmiSchedule> findByLoan_LoanIdOrderByDueDateAsc(Long loanId);
 }
