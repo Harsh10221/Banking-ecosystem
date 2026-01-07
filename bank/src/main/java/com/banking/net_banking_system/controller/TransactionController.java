@@ -1,12 +1,12 @@
 package com.banking.net_banking_system.controller;
 
 import com.banking.net_banking_system.service.TransactionService;
+import com.banking.net_banking_system.service.TransferService;
+import com.banking.net_banking_system.utils.FormatDataToTransferCentralHub;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 @RestController
@@ -15,6 +15,12 @@ public class TransactionController {
 
     @Autowired
     private TransactionService transactionService;
+
+    @Autowired
+    private TransferService transferService;
+
+//    @Autowired
+//    private FormatDataToTransferCentralHub.DataObject dataObject;
 
     @PostMapping("/deposit")
     public String initiateDepositTransaction(@RequestBody Map<String,String> payload ){
@@ -44,6 +50,29 @@ public class TransactionController {
 
 
         return transactionService.withdrawTransaction(accountNumber,type,amount,userId);
+
+//        return "suces";
+    }
+
+//    need to check if we get the object or not
+
+    @PostMapping("/transfermoney")
+//    @ResponseBody
+    public FormatDataToTransferCentralHub.DataObject initiateDebitRequest(@RequestBody Map<String,String> payload ){
+
+        System.out.println("payload"+payload);
+
+//        senderAccountNo,senderBank,amount,type,receiverAccountNumber,receiverBank,verificationToken
+
+        String senderAccountNumber = payload.get("senderAccountNo");
+        Long amount = Long.parseLong(payload.get("amount"));
+        String type = payload.get("type");
+        String receiverAccountNumber = payload.get("receiverAccountNumber");
+        String receiverBank = payload.get("receiverBank");
+
+//        System.out.println("Type from /transfer"+type);
+
+        return transferService.initiateWithdrawTransfer(senderAccountNumber, BigDecimal.valueOf(amount),type,receiverAccountNumber,receiverBank);
 
 //        return "suces";
     }

@@ -1,5 +1,12 @@
 package com.banking.net_banking_system.controller;
 
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
+
+import com.banking.net_banking_system.model.User;
+
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +25,13 @@ public class OnboardingController {
 
     @Autowired
     private AccountService accountService;
+//<<<<<<< HEAD
+//
+//    @GetMapping("/")
+//    public String showLandingPage() {
+//        return "index";
+//    }
+//=======
     
     @Autowired
     private UserRepository userRepository;
@@ -52,6 +66,7 @@ public class OnboardingController {
         model.addAttribute("transactions", transactions);
         return "home";
     }
+//>>>>>>> main
 
     @PostMapping("/api/onboarding/register")
     @ResponseBody 
