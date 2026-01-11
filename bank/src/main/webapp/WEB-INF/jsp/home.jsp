@@ -77,6 +77,16 @@
                 transform: translateX(0);
             }
         }
+        
+        .shake-animation {
+		    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+		}
+		@keyframes shake {
+		    10%, 90% { transform: translate3d(-1px, 0, 0); }
+		    20%, 80% { transform: translate3d(2px, 0, 0); }
+		    30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+		    40%, 60% { transform: translate3d(4px, 0, 0); }
+		}
     </style>
 </head>
 <body class="h-screen flex overflow-hidden">
@@ -103,7 +113,7 @@
             <a href="#" onclick="showPage('transactions')" 
 			   class="sidebar-link flex items-center gap-3 p-3 rounded-lg text-slate-600 hover:bg-gray-50 transition-all" 
 			   id="nav-transactions">
-			    <i class="fa-solid fa-money-bill-transfer w-5"></i> 
+			    <i class="fa-solid fa-money-bill-wave w-5"></i>
 			    <span>Deposits & Withdrawals</span>
 			</a>
             <a href="#" onclick="showPage('accounts')" class="sidebar-link flex items-center gap-3 p-3 rounded-lg text-slate-600 hover:bg-gray-50 transition-all" id="nav-accounts">
@@ -319,27 +329,33 @@
                     <!-- Side Offers and Features -->
                     <div class="space-y-6">
                         <div class="bg-white rounded-2xl border p-6 card-shadow">
-                            <h3 class="font-bold text-slate-800 mb-4">Need a Loan?</h3>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div class="bg-gray-50 p-3 rounded-xl text-center hover:bg-red-50 transition-colors cursor-pointer group">
-                                    <i class="fa-solid fa-user-graduate text-xl text-gray-400 group-hover:text-red-600 mb-2"></i>
-                                    <p class="text-[10px] font-semibold">Education</p>
-                                </div>
-                                <div class="bg-gray-50 p-3 rounded-xl text-center hover:bg-red-50 transition-colors cursor-pointer group">
-                                    <i class="fa-solid fa-car text-xl text-gray-400 group-hover:text-red-600 mb-2"></i>
-                                    <p class="text-[10px] font-semibold">Car Loan</p>
-                                </div>
-                                <div class="bg-gray-50 p-3 rounded-xl text-center hover:bg-red-50 transition-colors cursor-pointer group">
-                                    <i class="fa-solid fa-gem text-xl text-gray-400 group-hover:text-red-600 mb-2"></i>
-                                    <p class="text-[10px] font-semibold">Gold Loan</p>
-                                </div>
-                                <div class="bg-red-600 p-3 rounded-xl text-center text-white cursor-pointer shadow-md">
-                                    <i class="fa-solid fa-bolt text-xl mb-2"></i>
-                                    <p class="text-[10px] font-semibold">Personal</p>
-                                </div>
-                            </div>
-                            <button class="w-full mt-4 py-2 border-2 border-red-600 text-red-600 rounded-xl font-bold text-sm hover:bg-red-600 hover:text-white transition-all">Check Eligibility</button>
-                        </div>
+						    <h3 class="font-bold text-slate-800 mb-4">Need a Loan?</h3>
+						    <div class="grid grid-cols-2 gap-3">
+						        <div onclick="openLoanModal('Education Loan')" class="bg-gray-50 p-3 rounded-xl text-center hover:bg-red-50 transition-colors cursor-pointer group">
+						            <i class="fa-solid fa-user-graduate text-xl text-gray-400 group-hover:text-red-600 mb-2"></i>
+						            <p class="text-[10px] font-semibold">Education</p>
+						        </div>
+						        
+						        <div onclick="openLoanModal('Car Loan')" class="bg-gray-50 p-3 rounded-xl text-center hover:bg-red-50 transition-colors cursor-pointer group">
+						            <i class="fa-solid fa-car text-xl text-gray-400 group-hover:text-red-600 mb-2"></i>
+						            <p class="text-[10px] font-semibold">Car Loan</p>
+						        </div>
+						        
+						        <div onclick="openLoanModal('Gold Loan')" class="bg-gray-50 p-3 rounded-xl text-center hover:bg-red-50 transition-colors cursor-pointer group">
+						            <i class="fa-solid fa-gem text-xl text-gray-400 group-hover:text-red-600 mb-2"></i>
+						            <p class="text-[10px] font-semibold">Gold Loan</p>
+						        </div>
+						        
+						        <div onclick="openLoanModal('Personal Loan')" class="bg-red-600 p-3 rounded-xl text-center text-white cursor-pointer shadow-md hover:bg-red-700 transition-all">
+						            <i class="fa-solid fa-bolt text-xl mb-2"></i>
+						            <p class="text-[10px] font-semibold">Personal</p>
+						        </div>
+						    </div>
+						    
+						    <button onclick="openLoanModal('Personal Loan')" class="w-full mt-4 py-2 border-2 border-red-600 text-red-600 rounded-xl font-bold text-sm hover:bg-red-600 hover:text-white transition-all">
+						        Check Eligibility
+						    </button>
+						</div>
 
                         <div class="bg-white rounded-2xl border p-6 card-shadow">
                             <h3 class="font-bold text-slate-800 mb-4">Investments</h3>
@@ -636,54 +652,297 @@
 
             <!-- LOANS PAGE -->
             <section id="page-loans" class="page-section hidden space-y-6">
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="lg:col-span-2 space-y-6">
-                        <div class="bg-white p-6 rounded-2xl border card-shadow">
-                            <h3 class="font-bold text-slate-800 mb-4">Active Loans</h3>
-                            <!-- <div class="p-4 sm:p-5 border rounded-2xl relative overflow-hidden bg-white hover:border-red-200 transition-all">
-                                <div class="absolute top-0 left-0 w-1 sm:w-2 h-full bg-red-600"></div>
-                                <div class="flex justify-between items-start mb-4">
-                                    <div>
-                                        <h4 class="font-bold text-base sm:text-lg">Home Loan</h4>
-                                        <p class="text-[10px] text-gray-500">L102938475</p>
-                                    </div>
-                                    <span class="text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">82% Paid</span>
-                                </div>
-                                <div class="grid grid-cols-3 gap-2 sm:gap-4 mb-6 text-center sm:text-left">
-                                    <div><p class="text-[8px] sm:text-[10px] text-gray-400 uppercase">Sanctioned</p><p class="font-bold text-xs sm:text-base">₹ 45L</p></div>
-                                    <div><p class="text-[8px] sm:text-[10px] text-gray-400 uppercase">ROI</p><p class="font-bold text-xs sm:text-base">8.75%</p></div>
-                                    <div><p class="text-[8px] sm:text-[10px] text-gray-400 uppercase">O/S</p><p class="font-bold text-red-600 text-xs sm:text-base">₹ 7.5L</p></div>
-                                </div>
-                                <div class="w-full bg-gray-100 h-1.5 sm:h-2 rounded-full mb-6">
-                                    <div class="bg-green-500 h-full rounded-full" style="width: 82%"></div>
-                                </div>
-                                <div class="flex flex-col sm:flex-row gap-3">
-                                    <button class="flex-1 py-2 border rounded-lg text-xs font-bold hover:bg-gray-50">Details</button>
-                                    <button class="flex-1 py-2 bg-red-600 text-white rounded-lg text-xs font-bold">Pay EMI</button>
-                                </div>
-                            </div> -->
-                            <c:forEach items="${user.loans}" var="loan">
-							    <div class="p-4 sm:p-5 border rounded-2xl relative overflow-hidden bg-white hover:border-red-200 transition-all mb-4">
-							        <div class="absolute top-0 left-0 w-1 sm:w-2 h-full bg-red-600"></div>
-							        <div class="flex justify-between items-start mb-4">
-							            <div>
-							                <h4 class="font-bold text-base sm:text-lg">${loan.loanType}</h4>
-							                <p class="text-[10px] text-gray-500">ID: ${loan.loanId}</p>
-							            </div>
-							            <span class="text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">${loan.status}</span>
-							        </div>
-							        <div class="grid grid-cols-3 gap-2 sm:gap-4 mb-6 text-center sm:text-left">
-							            <div><p class="text-[8px] sm:text-[10px] text-gray-400 uppercase">Sanctioned</p><p class="font-bold text-xs sm:text-base">₹ ${loan.loanAmount}</p></div>
-							            <div><p class="text-[8px] sm:text-[10px] text-gray-400 uppercase">EMI</p><p class="font-bold text-xs sm:text-base">₹ ${loan.monthlyEmiAmount}</p></div>
-							            <div><p class="text-[8px] sm:text-[10px] text-gray-400 uppercase">O/S</p><p class="font-bold text-red-600 text-xs sm:text-base">₹ ${loan.totalAmountRemaining}</p></div>
-							        </div>
+			    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+			        <div class="lg:col-span-2 space-y-8">
+			            
+			            <div class="bg-white p-6 rounded-2xl border card-shadow">
+			                <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+			                    <i class="fa-solid fa-circle-check text-green-600"></i> Active Loans
+			                </h3>
+			                
+			                <c:set var="hasApproved" value="false" />
+			                <c:forEach items="${user.loans}" var="loan">
+			                    <c:if test="${loan.status == 'APPROVED'}">
+			                        <c:set var="hasApproved" value="true" />
+			                        <div class="p-4 sm:p-5 border rounded-2xl relative overflow-hidden bg-white hover:border-green-200 transition-all mb-4">
+			                            <div class="absolute top-0 left-0 w-1 sm:w-2 h-full bg-green-600"></div>
+			                            
+			                            <div class="flex justify-between items-start mb-4">
+			                                <div>
+			                                    <h4 class="font-bold text-base sm:text-lg">${loan.loanType}</h4>
+			                                    <p class="text-[10px] text-gray-500">ID: ${loan.loanId}</p>
+			                                </div>
+			                                <span class="text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">ACTIVE</span>
+			                            </div>
+			                            
+			                            <div class="grid grid-cols-3 gap-2 sm:gap-4 mb-6 text-center sm:text-left">
+			                                <div>
+			                                    <p class="text-[8px] sm:text-[10px] text-gray-400 uppercase">Sanctioned</p>
+			                                    <p class="font-bold text-xs sm:text-base">₹ ${loan.loanAmount}</p>
+			                                </div>
+			                                <div>
+			                                    <p class="text-[8px] sm:text-[10px] text-gray-400 uppercase">EMI</p>
+			                                    <p class="font-bold text-xs sm:text-base">₹ ${loan.monthlyEmiAmount}</p>
+			                                </div>
+			                                <div>
+			                                    <p class="text-[8px] sm:text-[10px] text-gray-400 uppercase">Remaining</p>
+			                                    <p class="font-bold text-red-600 text-xs sm:text-base">₹ ${loan.totalAmountRemaining}</p>
+			                                </div>
+			                            </div>
+			
+			                            <div class="flex flex-col sm:flex-row gap-3 pt-2 border-t border-gray-50">
+			                                <button onclick="openEmiModal(${loan.loanId})" class="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
+			                                    <i class="fa-solid fa-calendar-days"></i> View Schedule
+			                                </button>
+			                                <button onclick="openEmiModal(${loan.loanId})" class="flex-1 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-all shadow-lg">
+			                                    Pay EMI
+			                                </button>
+			                            </div>
+			                        </div>
+			                    </c:if>
+			                </c:forEach>
+			
+			                <c:if test="${not hasApproved}">
+			                    <p class="text-gray-400 text-sm text-center py-4 bg-gray-50 rounded-xl border border-dashed">No active loans found.</p>
+			                </c:if>
+			            </div>
+			
+			            <div class="bg-white p-6 rounded-2xl border card-shadow">
+			                <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+			                    <i class="fa-solid fa-folder-closed text-slate-400"></i> Closed Loans
+			                </h3>
+			                
+			                <c:set var="hasClosed" value="false" />
+			                <c:forEach items="${user.loans}" var="loan">
+			                    <c:if test="${loan.status == 'CLOSED'}">
+			                        <c:set var="hasClosed" value="true" />
+			                        <div class="p-4 border border-slate-100 rounded-xl bg-slate-50 mb-3 hover:bg-white hover:border-slate-300 transition-all">
+			                            <div class="flex justify-between items-center mb-3">
+			                                <div>
+			                                    <h4 class="font-bold text-slate-700">${loan.loanType}</h4>
+			                                    <p class="text-[10px] text-gray-500">Loan ID: ${loan.loanId}</p>
+			                                </div>
+			                                <div class="flex items-center gap-2">
+			                                    <span class="text-[10px] bg-slate-200 text-slate-600 px-3 py-1 rounded-full font-bold uppercase">Closed</span>
+			                                    <i class="fa-solid fa-circle-check text-green-500 text-lg"></i>
+			                                </div>
+			                            </div>
+			                            
+			                            <div class="flex items-center justify-between text-sm">
+			                                <div>
+			                                    <span class="text-gray-400 text-xs">Disbursement Amount:</span>
+			                                    <span class="font-bold text-slate-800">₹ ${loan.loanAmount}</span>
+			                                    
+			                                    <span class="text-gray-400 text-xs">Total Paid:</span>
+			                                    <span class="font-bold text-slate-800">₹ ${loan.totalAmountPaid}</span>
+			                                </div>
+			                                <button onclick="openEmiModal(${loan.loanId})" class="text-blue-600 text-xs font-bold hover:underline">
+			                                    View Statement
+			                                </button>
+			                            </div>
+			                        </div>
+			                    </c:if>
+			                </c:forEach>
+			                
+			                <c:if test="${not hasClosed}">
+			                    <p class="text-gray-400 text-sm text-center py-4 bg-gray-50 rounded-xl border border-dashed">No closed loans history.</p>
+			                </c:if>
+			            </div>
+			
+			            <div class="bg-white p-6 rounded-2xl border card-shadow">
+			                <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+			                    <i class="fa-solid fa-ban text-red-500"></i> Rejected Applications
+			                </h3>
+			                
+			                <c:set var="hasRejected" value="false" />
+			                <c:forEach items="${user.loans}" var="loan">
+			                    <c:if test="${loan.status == 'REJECTED'}">
+			                        <c:set var="hasRejected" value="true" />
+			                        <div class="p-4 border rounded-xl bg-red-50/30 border-red-100 mb-3 opacity-60 hover:opacity-100 transition-all">
+			                            <div class="flex justify-between items-center">
+			                                <div>
+			                                    <h4 class="font-bold text-slate-700">${loan.loanType}</h4>
+			                                    <p class="text-[10px] text-gray-500">Applied Amount: ₹ ${loan.loanAmount}</p>
+			                                </div>
+			                                <span class="text-[10px] bg-red-100 text-red-600 px-3 py-1 rounded-full font-bold">REJECTED</span>
+			                            </div>
+			                        </div>
+			                    </c:if>
+			                </c:forEach>
+			                
+			                <c:if test="${not hasRejected}">
+			                    <p class="text-gray-400 text-sm text-center py-4 bg-gray-50 rounded-xl border border-dashed">No rejected applications.</p>
+			                </c:if>
+			            </div>
+			
+			        </div>
+			    </div>
+			</section>
+			
+			<!-- LOAN APPLY PAGE -->
+			<div id="loan-application-modal" class="fixed inset-0 z-[80] hidden">
+			    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="closeLoanModal()"></div>
+			    
+			    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white sm:rounded-3xl shadow-2xl overflow-hidden animate-fade-in-up transform transition-all">
+			        <div class="bg-gradient-to-r from-red-600 to-red-800 p-6 text-white flex justify-between items-center">
+			            <div>
+			                <h3 class="text-xl font-bold flex items-center gap-2">
+			                    <i class="fa-solid fa-file-signature"></i> Apply for Loan
+			                </h3>
+			                <p class="text-xs text-red-100 opacity-80 mt-1">Instant approval based on credit score</p>
+			            </div>
+			            <button onclick="closeLoanModal()" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
+			                <i class="fa-solid fa-xmark"></i>
+			            </button>
+			        </div>
+			        
+			        <form id="loan-application-form" onsubmit="handleLoanApplication(event)" class="p-6 space-y-5 max-h-[75vh] overflow-y-auto no-scrollbar bg-gray-50/50">
+			            <input type="hidden" id="loan-userId" value="${user.userId}"> 
+			            
+			            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+			                <div class="sm:col-span-2">
+			                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">Loan Type</label>
+			                    <div class="relative">
+			                        <i class="fa-solid fa-layer-group absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+			                        <select id="loan-type" class="w-full pl-10 pr-4 py-3 border rounded-xl bg-white focus:ring-2 focus:ring-red-500 outline-none text-sm font-semibold appearance-none">
+			                            <option value="Personal Loan">Personal Loan</option>
+			                            <option value="Home Loan">Home Loan</option>
+			                            <option value="Car Loan">Car Loan</option>
+			                            <option value="Education Loan">Education Loan</option>
+			                        </select>
+			                        <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
+			                    </div>
+			                </div>
+			
+			                <div>
+			                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">Loan Amount (₹)</label>
+			                    <div class="relative">
+			                        <i class="fa-solid fa-indian-rupee-sign absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+			                        <input type="number" id="loan-amount" required min="5000" placeholder="e.g. 50000" 
+			                               class="w-full pl-10 pr-4 py-3 border rounded-xl bg-white focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-700">
+			                    </div>
+			                </div>
+			                
+			                <div>
+			                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">Tenure (Months)</label>
+			                    <div class="relative">
+			                        <i class="fa-solid fa-calendar-days absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+			                        <input type="number" id="loan-tenure" required min="3" max="240" placeholder="e.g. 12" 
+			                               class="w-full pl-10 pr-4 py-3 border rounded-xl bg-white focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-700">
+			                    </div>
+			                </div>
+			
+			                <div>
+			                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">Monthly Income (₹)</label>
+			                    <input type="number" id="loan-monthly-income" required placeholder="Your monthly salary" 
+			                           class="w-full px-4 py-3 border rounded-xl bg-white focus:ring-2 focus:ring-red-500 outline-none text-sm font-bold text-slate-700">
+			                </div>
+			                
+			                <div>
+							    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">
+							        Ongoing Debt 
+							    </label>
+							    
+							    <c:set var="calculatedOngoingDebt" value="0" />
+									<c:if test="${not empty user.loans}">
+									    <c:forEach items="${user.loans}" var="existingLoan">
+									        <c:if test="${existingLoan.status == 'APPROVED'}">
+									            <c:set var="calculatedOngoingDebt" value="${calculatedOngoingDebt + existingLoan.monthlyEmiAmount}" />
+									        </c:if>
+									    </c:forEach>
+									</c:if>
+							    <div class="relative">
+							        <i class="fa-solid fa-file-invoice-dollar absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+							        <input type="number" id="loan-debt" value="${calculatedOngoingDebt}" readonly
+							               class="w-full pl-10 pr-4 py-3 border rounded-xl bg-gray-100 text-gray-500 cursor-not-allowed focus:outline-none text-sm font-bold">
 							    </div>
-							</c:forEach>
-                        </div>
-                    </div>
-                </div>
-            </section>
+							</div>
+			
+			                <div class="sm:col-span-2 bg-white p-4 rounded-xl border border-dashed border-gray-300">
+			                    <div class="flex justify-between items-end mb-2">
+			                        <label class="block text-[10px] font-bold text-gray-500 uppercase">Credit Score (Self-Check)</label>
+			                        <span id="score-val" class="text-xl font-bold text-red-600">750</span>
+			                    </div>
+			                    <input type="range" id="loan-score" min="300" max="900" value="750" 
+			                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-red-600" 
+			                           oninput="document.getElementById('score-val').innerText = this.value; updateScoreColor(this.value)">
+			                    <div class="flex justify-between text-[10px] text-gray-400 mt-1">
+			                        <span>Poor (300)</span>
+			                        <span>Excellent (900)</span>
+			                    </div>
+			                </div>
+			            </div>
+			
+			            <div id="loan-msg" class="hidden p-4 rounded-xl text-center text-sm font-bold flex items-center justify-center gap-2 animate-pulse"></div>
+			
+			            <button type="submit" id="loan-submit-btn" class="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold shadow-lg transition-all flex items-center justify-center gap-2">
+			                <span>Check Eligibility & Apply</span>
+			                <i class="fa-solid fa-arrow-right"></i>
+			            </button>
+			        </form>
+			    </div>
+			</div>
+			
+			<!-- EMI list Model -->
+			<div id="emi-modal" class="fixed inset-0 z-[60] hidden">
+			    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="closeEmiModal()"></div>
+			    
+			    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white sm:rounded-3xl shadow-2xl max-h-[85vh] flex flex-col overflow-hidden">
+			        
+			        <div class="p-6 border-b flex items-center justify-between bg-white z-10">
+			            <div>
+			                <h3 class="text-lg font-bold text-slate-800">Repayment Schedule</h3>
+			                <p class="text-xs text-slate-400">Track your pending and paid EMIs</p>
+			            </div>
+			            <button onclick="closeEmiModal()" class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors">
+			                <i class="fa-solid fa-xmark"></i>
+			            </button>
+			        </div>
+			
+			        <div class="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar bg-gray-50/50">
+			            
+			            <div id="section-pending">
+			                <h4 class="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">
+			                    <span class="w-2 h-2 rounded-full bg-red-500"></span> Pending Dues
+			                </h4>
+			                <div id="emi-list-pending" class="space-y-3">
+			                    </div>
+			            </div>
+			
+			            <div id="section-paid">
+			                <h4 class="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">
+			                    <span class="w-2 h-2 rounded-full bg-green-500"></span> Completed Payments
+			                </h4>
+			                <div id="emi-list-paid" class="space-y-3 opacity-60 hover:opacity-100 transition-opacity">
+			                    </div>
+			            </div>
+			        </div>
+			    </div>
+			</div>
 
+			<!-- Emi Payment Modal -->
+			<div id="paymentModal" class="fixed inset-0 z-[70] hidden items-center justify-center bg-black bg-opacity-50">
+			    <div class="w-full max-w-md scale-95 transform rounded-2xl bg-white p-6 shadow-2xl transition-all duration-300">
+			        <div class="mb-4 flex items-center justify-center">
+			            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+			                <i class="fa-solid fa-indian-rupee-sign text-xl"></i>
+			            </div>
+			        </div>
+			        <h3 class="text-center text-xl font-bold text-gray-800">Confirm Payment</h3>
+			        <p class="mt-2 text-center text-gray-600">
+			            Are you sure you want to pay <span id="modalAmount" class="font-bold text-gray-900"></span> for this EMI?
+			        </p>
+			        <div class="mt-6 flex gap-3">
+			            <button onclick="closePaymentModal()" class="flex-1 rounded-xl border border-gray-300 py-3 font-medium text-gray-700 hover:bg-gray-50">
+			                Cancel
+			            </button>
+			            <button id="confirmPayBtn" class="flex-1 rounded-xl bg-blue-600 py-3 font-medium text-white hover:bg-blue-700">
+			                Confirm & Pay
+			            </button>
+			        </div>
+			    </div>
+			</div>
+            
             <!-- CARDS PAGE -->
             <section id="page-cards" class="page-section hidden space-y-6">
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -895,5 +1154,9 @@
             });
         });
     </script>
+    
+    
+    <script src="/js/EmiSchedule.js"></script>
+    <script src="/js/ApplyLoan.js"></script>
 </body>
 </html>

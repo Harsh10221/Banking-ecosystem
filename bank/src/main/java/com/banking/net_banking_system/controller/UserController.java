@@ -27,8 +27,7 @@ public class UserController {
 //    public String login(@RequestBody Map<String, String> payload, HttpServletResponse response) {
 //=======
     public ResponseEntity<?> login(@RequestBody Map<String, String> payload, HttpServletResponse response) {
-
-        String email = payload.get("email");
+        String email = payload.get("username");
         String password = payload.get("password");
 
 
@@ -40,7 +39,7 @@ public class UserController {
         if ("success".equalsIgnoreCase(result)) {
             return ResponseEntity.ok(Map.of(
                 "success", true, 
-                "redirectUrl", "/home" // This is where the user goes after login
+                "redirectUrl", "/home" 
             ));
         } else {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

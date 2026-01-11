@@ -62,6 +62,7 @@ public class User {
     
     @JsonIgnore
     @OneToMany(mappedBy = "user")
+    @OrderBy("createdAt DESC")
     private List<LoanDetails> loans;
 
     @PrePersist
