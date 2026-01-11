@@ -7,6 +7,7 @@ import org.hibernate.sql.ast.tree.expression.Star;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.util.UUID;
 
 @Data
 @Entity
@@ -20,15 +21,15 @@ public class LegderModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long legerId;
 
-    @Column(nullable = false)
-    private String correlationId;
+    @Column(name = "correlation_id", nullable = false)
+    private UUID correlationId;
 
     @Column(nullable = false)
     private String transactionId;
 
     @ManyToOne
     @JoinColumn(name = "bank")
-    private BankMasterBalance bankMasterBalance;
+    private MasterBalance bankMasterBalance;
 
     @Column(nullable = false)
     private Transactiontype transactiontype;

@@ -22,6 +22,9 @@ public class TransferService {
 
     RestClient restClient = RestClient.create();
 
+    @Autowired
+    private AccountService accountService;
+
     @Value("${next_gen.jwt.secret}")
     private String secretKey;
 
@@ -37,6 +40,12 @@ public class TransferService {
         if (senderAccountNo == null || amount.compareTo(BigDecimal.ZERO) < 0 || !type.equals("Debit") ) {
 //            return "Some required fields are null";
             return null;
+        }
+
+        String validationUser = accountService.validateRecipientAccount(senderAccountNo);
+
+        if (!validationUser.equals("Success")) {
+            throw new RuntimeException("User not ready for transfer");
         }
 
         SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));

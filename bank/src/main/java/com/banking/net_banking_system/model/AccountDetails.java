@@ -14,6 +14,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 @Table(name = "account_details")
 public class AccountDetails {
 
+	public enum AccountStatus{
+		ACTIVE,BLOCKED,FROZEN
+	}
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -25,10 +29,11 @@ public class AccountDetails {
     private String accountType; // SAVINGS or CURRENT
 
     @Column(nullable = false)
-    private BigDecimal balance;
+    private BigDecimal balance ;
 
     @Column(nullable = false)
-    private String status; // ACTIVE or BLOCKED
+	@Enumerated(EnumType.STRING)
+    private AccountStatus status = AccountStatus.ACTIVE; // ACTIVE or BLOCKED
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -42,7 +47,7 @@ public class AccountDetails {
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
-        if (this.status == null) this.status = "ACTIVE";
+//        if (this.status == null) this.status = "ACTIVE";
         if (this.balance == null) this.balance = BigDecimal.ZERO;
     }
     
@@ -51,61 +56,13 @@ public class AccountDetails {
         this.balance = this.balance.add(amount);
     }
 
-	public Long getId() {
-		return id;
-	}
-
-	public void setId(Long id) {
-		this.id = id;
-	}
-
-	public String getAccountNumber() {
-		return accountNumber;
-	}
-
-	public void setAccountNumber(String accountNumber) {
-		this.accountNumber = accountNumber;
-	}
-
-	public String getAccountType() {
-		return accountType;
-	}
-
-	public void setAccountType(String accountType) {
-		this.accountType = accountType;
-	}
-
-	public BigDecimal getBalance() {
-		return balance;
-	}
-
 	public void setBalance(BigDecimal balance) {
 		System.out.println("from set "+balance);
 		 this.balance = balance;
 	}
 
-	public String getStatus() {
-		return status;
-	}
 
-	public void setStatus(String status) {
-		this.status = status;
-	}
 
-	public LocalDateTime getCreatedAt() {
-		return createdAt;
-	}
 
-	public void setCreatedAt(LocalDateTime createdAt) {
-		this.createdAt = createdAt;
-	}
-
-	public User getUser() {
-		return user;
-	}
-
-	public void setUser(User user) {
-		this.user = user;
-	}
     
 }

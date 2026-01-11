@@ -3,7 +3,9 @@ package com.banking.net_banking_system.controller;
 import com.banking.net_banking_system.service.TransactionService;
 import com.banking.net_banking_system.service.TransferService;
 import com.banking.net_banking_system.utils.FormatDataToTransferCentralHub;
+import com.banking.net_banking_system.utils.ResponseObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -23,12 +25,14 @@ public class TransactionController {
 //    private FormatDataToTransferCentralHub.DataObject dataObject;
 
     @PostMapping("/deposit")
-    public String initiateDepositTransaction(@RequestBody Map<String,String> payload ){
+    public ResponseEntity<ResponseObject<String>> initiateDepositTransaction(@RequestBody Map<String,String> payload ){
 
         String accountNumber = payload.get("accountNumber");
         String type = payload.get("type");
         Long amount = Long.parseLong(payload.get("amount"));
-        Long userId = Long.parseLong(payload.get("userId"));
+//        Long userId = Long.parseLong(payload.get("userId"));
+        /// remove the user if when not testing
+        Long userId = 2L;
 
         System.out.println("Type from /deposit"+type);
 
@@ -39,13 +43,15 @@ public class TransactionController {
     }
 
     @PostMapping("/withdraw")
-    public String initiateWithdrawTransaction(@RequestBody Map<String,String> payload ){
+    public ResponseEntity<ResponseObject<String>> initiateWithdrawTransaction(@RequestBody Map<String,String> payload ){
 
         String accountNumber = payload.get("accountNumber");
         String type = payload.get("type");
         Long amount = Long.parseLong(payload.get("amount"));
-        Long userId = Long.parseLong(payload.get("userId"));
-
+//        Long userId = Long.parseLong(payload.get("userId"));
+        /// remove the user if when not testing
+        Long userId = 1L;
+////this can be needed the userId take care of it
         System.out.println("Type from /withdrawl"+type);
 
 

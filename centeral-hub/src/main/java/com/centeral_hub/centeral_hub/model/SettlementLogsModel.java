@@ -5,6 +5,8 @@ import lombok.Data;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.util.UUID;
+
 @Data
 @Entity
 public class SettlementLogsModel {
@@ -17,8 +19,8 @@ public class SettlementLogsModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long settlementId;
 
-    @Column(nullable = false)
-    private String correlationId;
+    @Column(name = "correlation_id", nullable = false)
+    private UUID correlationId;
 
     @Column(nullable = false)
     private String bankServiceName;
