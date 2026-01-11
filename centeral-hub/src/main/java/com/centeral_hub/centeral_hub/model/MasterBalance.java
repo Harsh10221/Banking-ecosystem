@@ -9,11 +9,18 @@ import java.sql.Timestamp;
 
 @Data
 @Entity
-public class BankMasterBalance {
+public class MasterBalance {
+
+    enum Status{
+        ACTIVE,FROZE
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long bankId;
+
+    @Column(nullable = false)
+    private String bankCode;
 
     @Column(nullable = false)
     private BigDecimal balance;
@@ -23,6 +30,10 @@ public class BankMasterBalance {
 
     @Column(nullable = false)
     private String currency;
+
+//    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private Status status;
 
     @CreationTimestamp
     @Column(name = "created_at",nullable = false,updatable = false)

@@ -22,7 +22,10 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
+//        {
+//            "/account/validate"
+//        it should be shifted into the authinticated route
+//        }
 
         http
                 .csrf(csrf -> csrf.disable()) // Disable CSRF for Postman testing
@@ -30,9 +33,11 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Add this!
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.FORWARD).permitAll() // Must have this!
-                        .requestMatchers("/", "/api/onboarding/**", "/api/auth/**","/login/**", "/WEB-INF/jsp/**","/js/**", "/api/loans/**","/transfermoney","/error").permitAll() // Allow these endpoints
-                        .requestMatchers("/api/transaction/transfermoney**", "/error").permitAll()
-                        .requestMatchers("/api/transaction/deposit", "/api/transaction/withdraw", "/home").authenticated()
+                        .requestMatchers("/", "/api/onboarding/**","/account/validate", "/api/auth/**","/login/**", "/WEB-INF/jsp/**","/transfermoney","/error").permitAll() // Allow these endpoints
+                        .requestMatchers("/api/transaction/transfermoney**", "/error","/api/transaction/deposit", "/api/transaction/withdraw").permitAll()
+//                        .requestMatchers("/api/transaction/transfermoney**", "/error").permitAll()
+                        .requestMatchers("/home").authenticated()
+//                        .requestMatchers("/api/transaction/deposit", "/api/transaction/withdraw", "/home").authenticated()
                         .anyRequest().authenticated()
                 ).formLogin(login -> login.disable())
                 .httpBasic(basic -> basic.disable())

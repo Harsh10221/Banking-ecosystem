@@ -55,14 +55,14 @@ public class FormatDataToTransferCentralHub {
 
         if (senderAccountNo == null || senderBank == null || amount.compareTo(BigDecimal.ZERO) <= 0 || !type.equals("Debit") || receiverAccountNo == null || receiverBank == null || token == null) {
 //            System.out.println("I am here mate");
-            System.out.println("token"+token);
-            System.out.println("senderAcco"+senderAccountNo);
-            System.out.println("senderbank"+senderBank);
-            System.out.println("amount"+amount.compareTo(BigDecimal.ZERO));
-            System.out.println("type"+!type.equals("Debit"));
-            System.out.println("token"+token);
-            System.out.println("receiverAccountNo"+receiverAccountNo);
-            System.out.println("receiverBank"+receiverBank);
+//            System.out.println("token"+token);
+//            System.out.println("senderAcco"+senderAccountNo);
+//            System.out.println("senderbank"+senderBank);
+//            System.out.println("amount"+amount.compareTo(BigDecimal.ZERO));
+//            System.out.println("type"+!type.equals("Debit"));
+//            System.out.println("token"+token);
+//            System.out.println("receiverAccountNo"+receiverAccountNo);
+//            System.out.println("receiverBank"+receiverBank);
             return null;
         }
         

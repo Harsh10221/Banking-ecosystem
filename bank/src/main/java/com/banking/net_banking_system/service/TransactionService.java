@@ -6,7 +6,10 @@ import com.banking.net_banking_system.model.User;
 import com.banking.net_banking_system.repository.AccountRepository;
 import com.banking.net_banking_system.repository.TransactionRepository;
 import com.banking.net_banking_system.repository.UserRepository;
+import com.banking.net_banking_system.utils.ResponseObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,25 +24,30 @@ public class TransactionService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private AccountRepository accountRepository;
+
     @Transactional
-    public String depositTransaction(String accountNumber, String type, Long amount, Long userId) {
+    public ResponseEntity<ResponseObject<String>> depositTransaction(String accountNumber, String type, Long amount, Long userId) {
         Transaction newTransaction = new Transaction();
 
         if (accountNumber == null || !type.equals("Deposit") || amount == null) {
-            return "Account No or amount are required";
+            return ResponseObject.createResponse(400, "Account number and amount are required or type invalid.", null, HttpStatus.BAD_REQUEST);
         }
 
         if (amount < 1) {
-            return "Amount should be greater than 0";
+            return ResponseObject.createResponse(400, "Deposit amount must be at least 1.", null, HttpStatus.BAD_REQUEST);
         }
 
+
+        //// Might not needed if not needed remove this
         User userObj = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id:" + userId));
 
-        System.out.println("This is use obj" + userObj);
+//        System.out.println("This is use obj" + userObj);
 
         if (!userObj.getAccountDetails().getAccountNumber().equals(accountNumber)) {
-            return "Account Number and User Id are not matched";
+            return ResponseObject.createResponse(404, "Account and userId not match", null, HttpStatus.NOT_FOUND);
         }
 
         newTransaction.setUser(userObj);
@@ -51,52 +59,61 @@ public class TransactionService {
         accountDetails.setBalance(accountDetails.getBalance().add(BigDecimal.valueOf(amount)));
         Transaction result = transactionRepository.save(newTransaction);
 
-        System.out.println("i am from Transaction" + result);
+//        System.out.println("i am from Transaction" + result);
 
-        return "success";
+        return ResponseObject.createResponse(200, "Deposit success", null, HttpStatus.OK);
     }
 
     @Transactional
-    public String withdrawTransaction(String accountNumber, String type, Long amount, Long userId) {
+    public ResponseEntity<ResponseObject<String>> withdrawTransaction(String accountNumber, String type, Long amount, Long userId) {
+//        System.out.println("I am from withdraw");
         Transaction newTransaction = new Transaction();
 
         if (accountNumber == null || !type.equals("Withdraw") || amount == null) {
-            return "Account No or amount are required";
+//            return "Account No or amount are required";
+            return ResponseObject.createResponse(404, "Account No or Amount is required", null, HttpStatus.NOT_FOUND);
         }
 
         if (amount < 1) {
-            return "Amount should be greater than 0";
+//            return "Amount should be greater than 0";
+            ResponseObject.createResponse(400, "Minimum amount should be 1 ", null, HttpStatus.BAD_REQUEST);
+
         }
 
+        //// Might not need this remove this if not necessaray
         User userObj = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id:" + userId));
 
 
         if (!userObj.getAccountDetails().getAccountNumber().equals(accountNumber)) {
-            return "Account Number and User Id are not matched";
+//            System.out.println("I am inside no match");
+            ResponseObject.createResponse(400, "Account Number and User Id are not matched", null, HttpStatus.BAD_REQUEST);
+//            return "Account Number and User Id are not matched";
         }
 
-//        if (userObj.getAccountDetails().getBalance() < amount) {
-        if (userObj.getAccountDetails().getBalance().compareTo(BigDecimal.valueOf(amount)) <= 0   ) {
-            return "Balance was low: "+userObj.getAccountDetails().getBalance();
-        }
 
+//        When the balance is low from the required amount the money still depositing in the reciver
+//        Issue is becasue of the exception handling the return as string response is considering true
+        if (userObj.getAccountDetails().getBalance().compareTo(BigDecimal.valueOf(amount)) < 0) {
+            System.out.println("I am inside low balance");
+            return ResponseObject.createResponse(400, "Balance is low for transaction ", null, HttpStatus.BAD_REQUEST);
+        }
 
 
         newTransaction.setUser(userObj);
         newTransaction.setAmount(amount);
         newTransaction.setType(Transaction.Type.WITHDRAW);
 
-        AccountDetails accountDetails = userObj.getAccountDetails();
+//        AccountDetails accountDetails = userObj.getAccountDetails();
 
-
-        accountDetails.setBalance(accountDetails.getBalance().subtract(BigDecimal.valueOf(amount)));
+        int resultDb = accountRepository.substractBalance(accountNumber, amount);
+        System.out.println("This is result Db" + resultDb);
+//        accountDetails.setBalance(accountDetails.getBalance().subtract(BigDecimal.valueOf(amount)));
         Transaction result = transactionRepository.save(newTransaction);
 
-        return "success";
+        return ResponseObject.createResponse(200, "Withdraw success", null, HttpStatus.OK);
 
     }
-
 
 
 }
