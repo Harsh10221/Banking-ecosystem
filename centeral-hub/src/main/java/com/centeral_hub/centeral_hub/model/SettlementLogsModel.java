@@ -11,7 +11,7 @@ import java.util.UUID;
 @Entity
 public class SettlementLogsModel {
 
-    private enum Direction {
+    public enum Direction {
         INBOUND,OUTBOUND
     }
 

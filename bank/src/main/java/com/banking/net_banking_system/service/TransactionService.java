@@ -7,16 +7,20 @@ import com.banking.net_banking_system.repository.AccountRepository;
 import com.banking.net_banking_system.repository.TransactionRepository;
 import com.banking.net_banking_system.repository.UserRepository;
 import com.banking.net_banking_system.utils.ResponseObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
-@Controller
+@Service
 public class TransactionService {
+
+    private static final Logger logger = LoggerFactory.getLogger(TransactionService.class);
 
     @Autowired
     private TransactionRepository transactionRepository;
@@ -29,91 +33,98 @@ public class TransactionService {
 
     @Transactional
     public ResponseEntity<ResponseObject<String>> depositTransaction(String accountNumber, String type, Long amount, Long userId) {
-        Transaction newTransaction = new Transaction();
+        logger.info("Processing Deposit: Account={}, Amount={}", accountNumber, amount);
 
-        if (accountNumber == null || !type.equals("Deposit") || amount == null) {
-            return ResponseObject.createResponse(400, "Account number and amount are required or type invalid.", null, HttpStatus.BAD_REQUEST);
+        // 1. Input Validation
+        if (accountNumber == null || amount == null || amount < 1) {
+            return ResponseObject.createResponse(400, "Invalid input: Amount must be greater than 0 and Account Number is required.", null, HttpStatus.BAD_REQUEST);
         }
 
-        if (amount < 1) {
-            return ResponseObject.createResponse(400, "Deposit amount must be at least 1.", null, HttpStatus.BAD_REQUEST);
+        try {
+            // 2. Fetch User & Account
+            User userObj = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+
+            AccountDetails accountDetails = userObj.getAccountDetails();
+
+            // 3. Validation: Match Account to User
+            if (!accountDetails.getAccountNumber().equals(accountNumber)) {
+                logger.warn("Security Alert: Account Number {} does not match User ID {}", accountNumber, userId);
+                return ResponseObject.createResponse(400, "Account mismatch for the provided user.", null, HttpStatus.BAD_REQUEST);
+            }
+
+            // 4. Perform Deposit
+            BigDecimal depositAmount = BigDecimal.valueOf(amount);
+            accountDetails.setBalance(accountDetails.getBalance().add(depositAmount));
+            
+            // 5. Save Changes 
+            accountRepository.save(accountDetails);
+
+            Transaction newTransaction = new Transaction();
+            newTransaction.setUser(userObj);
+            newTransaction.setAmount(amount);
+            newTransaction.setType(Transaction.Type.DEPOSIT);
+            transactionRepository.save(newTransaction);
+
+            logger.info("Deposit Successful. New Balance: {}", accountDetails.getBalance());
+            return ResponseObject.createResponse(200, "Deposit successful", null, HttpStatus.OK);
+
+        } catch (Exception e) {
+            logger.error("Error processing deposit", e);
+            return ResponseObject.createResponse(500, "Internal Server Error during deposit", null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
-
-        //// Might not needed if not needed remove this
-        User userObj = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id:" + userId));
-
-//        System.out.println("This is use obj" + userObj);
-
-        if (!userObj.getAccountDetails().getAccountNumber().equals(accountNumber)) {
-            return ResponseObject.createResponse(404, "Account and userId not match", null, HttpStatus.NOT_FOUND);
-        }
-
-        newTransaction.setUser(userObj);
-        newTransaction.setAmount(amount);
-        newTransaction.setType(Transaction.Type.DEPOSIT);
-
-        AccountDetails accountDetails = userObj.getAccountDetails();
-
-        accountDetails.setBalance(accountDetails.getBalance().add(BigDecimal.valueOf(amount)));
-        Transaction result = transactionRepository.save(newTransaction);
-
-//        System.out.println("i am from Transaction" + result);
-
-        return ResponseObject.createResponse(200, "Deposit success", null, HttpStatus.OK);
     }
 
     @Transactional
     public ResponseEntity<ResponseObject<String>> withdrawTransaction(String accountNumber, String type, Long amount, Long userId) {
-//        System.out.println("I am from withdraw");
-        Transaction newTransaction = new Transaction();
+        logger.info("Processing Withdrawal: Account={}, Amount={}", accountNumber, amount);
 
-        if (accountNumber == null || !type.equals("Withdraw") || amount == null) {
-//            return "Account No or amount are required";
-            return ResponseObject.createResponse(404, "Account No or Amount is required", null, HttpStatus.NOT_FOUND);
+        // 1. Input Validation
+        if (accountNumber == null || amount == null || amount < 1) {
+            return ResponseObject.createResponse(400, "Invalid input: Amount must be greater than 0.", null, HttpStatus.BAD_REQUEST);
         }
 
-        if (amount < 1) {
-//            return "Amount should be greater than 0";
-            ResponseObject.createResponse(400, "Minimum amount should be 1 ", null, HttpStatus.BAD_REQUEST);
+        try {
+            // 2. Fetch User & Account
+            User userObj = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
 
+            AccountDetails accountDetails = userObj.getAccountDetails();
+
+            // 3. Validation: Match Account to User
+            if (!accountDetails.getAccountNumber().equals(accountNumber)) {
+                logger.warn("Security Alert: Account Number {} does not match User ID {}", accountNumber, userId);
+                return ResponseObject.createResponse(400, "Account mismatch for the provided user.", null, HttpStatus.BAD_REQUEST);
+            }
+
+            // 4. Validation: Check Sufficient Balance
+            BigDecimal withdrawAmount = BigDecimal.valueOf(amount);
+            if (accountDetails.getBalance().compareTo(withdrawAmount) < 0) {
+                logger.warn("Insufficient funds for Account: {}", accountNumber);
+                return ResponseObject.createResponse(400, "Insufficient Balance", null, HttpStatus.BAD_REQUEST);
+            }
+
+            // 5. Perform Withdrawal
+            // Option A: Use Safe Subtract method from Repository (Recommended for consistency with your previous code)
+            int rowsUpdated = accountRepository.substractBalance(accountNumber, amount);
+            
+            if (rowsUpdated == 0) {
+                throw new RuntimeException("Database update failed for withdrawal.");
+            }
+
+            // 6. Log Transaction
+            Transaction newTransaction = new Transaction();
+            newTransaction.setUser(userObj);
+            newTransaction.setAmount(amount);
+            newTransaction.setType(Transaction.Type.WITHDRAW);
+            transactionRepository.save(newTransaction);
+
+            logger.info("Withdrawal Successful.");
+            return ResponseObject.createResponse(200, "Withdraw successful", null, HttpStatus.OK);
+
+        } catch (Exception e) {
+            logger.error("Error processing withdrawal", e);
+            return ResponseObject.createResponse(500, "Internal Server Error during withdrawal", null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
-        //// Might not need this remove this if not necessaray
-        User userObj = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id:" + userId));
-
-
-        if (!userObj.getAccountDetails().getAccountNumber().equals(accountNumber)) {
-//            System.out.println("I am inside no match");
-            ResponseObject.createResponse(400, "Account Number and User Id are not matched", null, HttpStatus.BAD_REQUEST);
-//            return "Account Number and User Id are not matched";
-        }
-
-
-//        When the balance is low from the required amount the money still depositing in the reciver
-//        Issue is becasue of the exception handling the return as string response is considering true
-        if (userObj.getAccountDetails().getBalance().compareTo(BigDecimal.valueOf(amount)) < 0) {
-            System.out.println("I am inside low balance");
-            return ResponseObject.createResponse(400, "Balance is low for transaction ", null, HttpStatus.BAD_REQUEST);
-        }
-
-
-        newTransaction.setUser(userObj);
-        newTransaction.setAmount(amount);
-        newTransaction.setType(Transaction.Type.WITHDRAW);
-
-//        AccountDetails accountDetails = userObj.getAccountDetails();
-
-        int resultDb = accountRepository.substractBalance(accountNumber, amount);
-        System.out.println("This is result Db" + resultDb);
-//        accountDetails.setBalance(accountDetails.getBalance().subtract(BigDecimal.valueOf(amount)));
-        Transaction result = transactionRepository.save(newTransaction);
-
-        return ResponseObject.createResponse(200, "Withdraw success", null, HttpStatus.OK);
-
     }
-
-
 }

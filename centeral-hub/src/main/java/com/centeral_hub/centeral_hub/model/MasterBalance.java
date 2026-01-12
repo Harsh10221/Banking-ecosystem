@@ -11,7 +11,7 @@ import java.sql.Timestamp;
 @Entity
 public class MasterBalance {
 
-    enum Status{
+    public enum Status{
         ACTIVE,FROZE
     }
 

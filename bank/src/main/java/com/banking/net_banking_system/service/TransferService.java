@@ -1,26 +1,24 @@
 package com.banking.net_banking_system.service;
 
-import com.banking.net_banking_system.model.User;
+import com.banking.net_banking_system.utils.FormatDataToTransferCentralHub;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import org.apache.catalina.webresources.StandardRoot;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
-import org.springframework.stereotype.Controller;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import javax.crypto.SecretKey;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 
-import com.banking.net_banking_system.utils.FormatDataToTransferCentralHub;
-
-@Controller
-//@RestController
+@Service
 public class TransferService {
 
-    RestClient restClient = RestClient.create();
+    private static final Logger logger = LoggerFactory.getLogger(TransferService.class);
 
     @Autowired
     private AccountService accountService;
@@ -28,88 +26,76 @@ public class TransferService {
     @Value("${next_gen.jwt.secret}")
     private String secretKey;
 
-//    @Autowired
-//    private FormatDataToTransferCentralHub.DataObject dataObject;
+    @Value("${central.hub.url:http://localhost:8081}") // Configurable URL with default
+    private String centralHubUrl;
+
+    private final RestClient restClient;
+
+    public TransferService() {
+        this.restClient = RestClient.create();
+    }
 
     public FormatDataToTransferCentralHub.DataObject initiateWithdrawTransfer(String senderAccountNo, BigDecimal amount, String type, String receiverAccountNumber, String receiverBank) {
 
-//        System.out.println("senderAccount"+senderAccountNo);
-//        System.out.println("amount "+amount.compareTo(BigDecimal.ZERO));
-//        System.out.println("type"+!type.equals("Debit"));
+        logger.info("Initiating transfer request. Sender: {}, Receiver: {}", senderAccountNo, receiverAccountNumber);
 
-        if (senderAccountNo == null || amount.compareTo(BigDecimal.ZERO) < 0 || !type.equals("Debit") ) {
-//            return "Some required fields are null";
-            return null;
+        // 1. Input Validation
+        if (senderAccountNo == null || amount.compareTo(BigDecimal.ZERO) <= 0 || !"Debit".equals(type)) {
+            logger.error("Invalid transfer parameters provided.");
+            throw new IllegalArgumentException("Invalid transfer parameters: Amount must be positive and type must be Debit.");
         }
 
+        // 2. Validate Local User Status
         String validationUser = accountService.validateRecipientAccount(senderAccountNo);
-
-        if (!validationUser.equals("Success")) {
-            throw new RuntimeException("User not ready for transfer");
+        if (!"Success".equals(validationUser)) {
+            logger.warn("User validation failed for account: {}", senderAccountNo);
+            throw new RuntimeException("Sender account is not active or ready for transfer.");
         }
 
-        SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
+        // 3. Generate Security Token
+        String verificationToken = generateToken();
 
-        String verificationToken = Jwts.builder()
-                .subject("NXT_GEN")
-                .signWith(key)
-                .compact();
-
+        // 4. Format Payload
         String senderBank = "Next_Gen";
-//      String verificationToken = "test";
+        var dataObject = FormatDataToTransferCentralHub.formatData(
+                senderAccountNo,
+                senderBank,
+                amount,
+                type,
+                receiverAccountNumber,
+                receiverBank,
+                verificationToken
+        );
 
-        com.banking.net_banking_system.utils.FormatDataToTransferCentralHub.DataObject dataObject = FormatDataToTransferCentralHub.formatData(senderAccountNo,senderBank,amount,type,receiverAccountNumber,receiverBank,verificationToken);
+        // 5. Send Request to Central Hub
+        try {
+            String response = restClient.post()
+                    .uri(centralHubUrl + "/api/v1/ledger/transactions")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(dataObject)
+                    .retrieve()
+                    .body(String.class);
 
-        String response = restClient.post()
-                .uri("http://localhost:8081/api/v1/ledger/transactions")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(dataObject)
-                .retrieve()
-                .body(String.class);
-//        in a banking system, you don't just want a String back; you want to know if the Central Hub successfully recorded the transaction. You can map the response directly back into a class.
-        System.out.println("Resoonse from centeral hub"+response);
+            logger.info("Central Hub Response: {}", response);
 
-        //api for centeral hub
-        // also need to authorize to check if it's bank only
-        // Data = user,amount,type,from which bank ,
-        // to which user/account no, to which bank
-        // is the daily limit is reached
+            // 6. Check for Hub Rejection
+            if (response != null && (response.contains("Failed") || response.contains("Error"))) {
+                throw new RuntimeException("Transfer rejected by Central Hub: " + response);
+            }
 
-
-
-        // froze the money as soon as the initiatewithdrawtransfer is invoke
-
-        //first withdraw if success then deposit in dest bank
-
-        //response from centeral-hub then call the withdraw method
-
-        //with the required data for it .
-
-
-
-
-
-
-
+        } catch (Exception e) {
+            logger.error("Error communicating with Central Hub", e);
+            throw new RuntimeException("Transfer failed: Unable to reach Central Hub.");
+        }
 
         return dataObject;
     }
 
-
-
+    private String generateToken() {
+        SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
+        return Jwts.builder()
+                .subject("NXT_GEN")
+                .signWith(key)
+                .compact();
+    }
 }
-
-//Request to centeral hub for transfer ->
-//centeral hub / request is from valid source / can user have that much money ->
-//centeral hub sends response to desti bank -> check if the user can take the money ->
-//dest bank to centeral hub ready to take money ->
-//sourse bank money debdit / withdraw method call ->
-//dest bank ka deposit method call hogayega
-
-//In real-world banking system the first step is manual
-
-//Manual Registration: The Bank admin registers with the Central Hub (using a physical contract or a secure admin portal).
-//
-//The Secret Delivery: The Central Hub generates a Client ID and a Client Secret. These are like a "Username and Password" but for servers.
-//
-//Storage: The Bank stores these secrets in their server's environment variables (.env or application.properties). They never send these in a normal URL or share them.

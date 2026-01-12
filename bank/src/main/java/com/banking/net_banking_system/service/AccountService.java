@@ -76,6 +76,16 @@ public class AccountService {
         return "Success";
 
     }
+    
+    public String getAccountHolderName(String accountNumber) {
+        AccountDetails account = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new RuntimeException("Account does not exist"));
+
+        if (account.getStatus() != AccountDetails.AccountStatus.ACTIVE) {
+            throw new RuntimeException("Account is inactive");
+        }
+        return account.getUser().getFullName();
+    }
 
 
     private String generateAccountNumber() {

@@ -515,7 +515,7 @@
             </section>
 
             <!-- FUND TRANSFER PAGE -->
-            <section id="page-transfer" class="page-section hidden space-y-6">
+            <!-- <section id="page-transfer" class="page-section hidden space-y-6">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="lg:col-span-2 bg-white rounded-2xl border card-shadow p-6">
                         <div class="flex gap-4 border-b mb-6 overflow-x-auto no-scrollbar whitespace-nowrap">
@@ -583,7 +583,80 @@
                         </div>
                     </div>
                 </div>
-            </section>
+            </section> -->
+            <section id="page-transfer" class="page-section hidden space-y-6">
+			    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+			        <div class="lg:col-span-2 bg-white rounded-2xl border card-shadow p-6">
+			            <h3 class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+			                <i class="fa-solid fa-money-bill-transfer text-red-600"></i> Initiate Fund Transfer
+			            </h3>
+			
+			            <form id="transfer-form" onsubmit="handleTransfer(event)" class="space-y-5 max-w-lg">
+			                
+			                <div>
+			                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2">From Account</label>
+			                    <div class="relative">
+			                        <i class="fa-solid fa-wallet absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+			                        <input type="text" id="tf-senderAccount" value="${user.accountDetails.accountNumber}" readonly 
+			                               class="w-full pl-10 pr-4 py-3 border rounded-xl bg-gray-100 text-gray-500 font-medium outline-none cursor-not-allowed">
+			                    </div>
+			                </div>
+			
+			                <div>
+							    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Receiver Account Number</label>
+							    <div class="relative flex gap-2">
+							        <div class="relative w-full">
+							            <i class="fa-solid fa-user absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+							            <input type="text" id="tf-receiverAccount" placeholder="Enter 12-digit Account No" required 
+							                   oninput="resetReceiverCheck()"
+							                   class="w-full pl-10 pr-4 py-3 border rounded-xl bg-white focus:ring-1 focus:ring-red-500 outline-none text-sm font-semibold">
+							        </div>
+							        
+							        <button type="button" onclick="checkReceiver()" id="btn-check-receiver"
+							                class="px-4 py-2 bg-slate-800 text-white text-xs font-bold rounded-xl hover:bg-slate-700 transition-all whitespace-nowrap shadow-md">
+							            Check
+							        </button>
+							    </div>
+							
+							    <p id="tf-receiverName" class="text-xs font-bold mt-2 hidden pl-1 transition-all duration-300"></p>
+							</div>
+			
+			                <div>
+			                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Receiver Bank Name</label>
+			                    <div class="relative">
+			                        <i class="fa-solid fa-building-columns absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+			                        <input type="text" id="tf-receiverBank" placeholder="e.g. NexGen, HDFC, SBI" required 
+			                               class="w-full pl-10 pr-4 py-3 border rounded-xl bg-white focus:ring-1 focus:ring-red-500 outline-none text-sm font-semibold">
+			                    </div>
+			                </div>
+			
+			                <div>
+			                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Amount (₹)</label>
+			                    <div class="relative">
+			                        <i class="fa-solid fa-indian-rupee-sign absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+			                        <input type="number" id="tf-amount" placeholder="0.00" required min="1" 
+			                               class="w-full pl-10 pr-4 py-3 border rounded-xl bg-white focus:ring-1 focus:ring-red-500 outline-none font-bold text-lg text-slate-800">
+			                    </div>
+			                </div>
+			
+			                <div class="pt-4">
+			                    <button type="submit" id="tf-btn" class="w-full py-4 btn-primary rounded-xl font-bold text-sm shadow-lg flex items-center justify-center gap-2 hover:bg-red-700 transition-all">
+			                        <i class="fa-solid fa-paper-plane"></i> Transfer Now
+			                    </button>
+			                </div>
+			
+			                <div id="tf-message" class="hidden p-4 rounded-xl text-center text-sm font-medium border"></div>
+			            </form>
+			        </div>
+			
+			        <div class="space-y-6">
+			            <div class="bg-blue-900 rounded-2xl p-6 text-white card-shadow">
+			                <h3 class="font-bold mb-2">Instant Transfer</h3>
+			                <p class="text-xs text-blue-200 mb-4">Validations are instant within NexGen. Inter-bank transfers may take time.</p>
+			            </div>
+			        </div>
+			    </div>
+			</section>
 
             <!-- STATEMENT PAGE -->
             <section id="page-statement" class="page-section hidden">
@@ -1158,5 +1231,6 @@
     
     <script src="/js/EmiSchedule.js"></script>
     <script src="/js/ApplyLoan.js"></script>
+    <script src="/js/FundTransfer.js"></script>
 </body>
 </html>
