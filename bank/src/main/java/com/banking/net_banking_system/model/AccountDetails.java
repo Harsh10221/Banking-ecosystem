@@ -26,14 +26,14 @@ public class AccountDetails {
     private String accountNumber;
 
     @Column(nullable = false)
-    private String accountType; // SAVINGS or CURRENT
+    private String accountType;
 
     @Column(nullable = false)
     private BigDecimal balance ;
 
     @Column(nullable = false)
 	@Enumerated(EnumType.STRING)
-    private AccountStatus status = AccountStatus.ACTIVE; // ACTIVE or BLOCKED
+    private AccountStatus status = AccountStatus.ACTIVE;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -47,7 +47,6 @@ public class AccountDetails {
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
-//        if (this.status == null) this.status = "ACTIVE";
         if (this.balance == null) this.balance = BigDecimal.ZERO;
     }
     

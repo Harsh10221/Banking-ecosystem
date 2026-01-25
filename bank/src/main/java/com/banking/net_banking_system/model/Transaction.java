@@ -3,6 +3,8 @@ package com.banking.net_banking_system.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+
+import java.math.BigDecimal;
 import java.time.Instant;
 
 
@@ -12,13 +14,12 @@ import java.time.Instant;
 public class Transaction {
 
 
-
     @PrePersist
     protected void onCreate() {
         this.createdAt = Instant.now();
     }
 
-    public void setType(Type input ) {
+    public void setType(Type input) {
         this.transactionType = input;
     }
 
@@ -26,33 +27,36 @@ public class Transaction {
         return transactionType;
     }
 
-//    public void setAmount(Long amount) {
-//        this.amount = amount;
-//    }
-
-
     public Instant getCreatedAT() {
         return createdAt;
     }
 
+    public enum Type {DEBIT,CREDIT,TRANSFER}
+    public enum status {PENDING, APPROVED, REJECTED, EXPIRED}
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long transactionId;
 
     @ManyToOne
-    @JoinColumn(name = "user_id",nullable = false )
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    public enum Type{DEPOSIT,WITHDRAW,AUTO_PAY};
     @Enumerated(EnumType.STRING)
     private Type transactionType;
-    private enum status{PENDING, APPROVED, REJECTED, EXPIRED};
-    private Instant createdAt ;
-    private Long amount;
-    private String destAccountNumber;
 
+    @Enumerated(EnumType.STRING)
+    private status transactionStatus = status.PENDING ;
 
+    private Instant createdAt;
+    private BigDecimal amount;
+
+    private Long sourceAccountNumber; ///new
+    private String sourceBank; ///new
+    private Long destinationAccountNumber;
+    private String destinationBank;
+    private String corelationId;
+    private String errorMsg; ///mew
 
 
 

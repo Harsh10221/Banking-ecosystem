@@ -28,25 +28,21 @@ public class TransferService {
     @Value("${next_gen.jwt.secret}")
     private String secretKey;
 
-//    @Autowired
-//    private FormatDataToTransferCentralHub.DataObject dataObject;
-
     public FormatDataToTransferCentralHub.DataObject initiateWithdrawTransfer(String senderAccountNo, BigDecimal amount, String type, String receiverAccountNumber, String receiverBank) {
 
-//        System.out.println("senderAccount"+senderAccountNo);
-//        System.out.println("amount "+amount.compareTo(BigDecimal.ZERO));
-//        System.out.println("type"+!type.equals("Debit"));
-
         if (senderAccountNo == null || amount.compareTo(BigDecimal.ZERO) < 0 || !type.equals("Debit") ) {
-//            return "Some required fields are null";
             return null;
         }
 
-        String validationUser = accountService.validateRecipientAccount(senderAccountNo);
+//        String validationUser = accountService.validateRecipientAccount(senderAccountNo);
+        ///This should be change because the validateREciept is returning an response of restclient.
 
+        String  validationUser = "Success";
         if (!validationUser.equals("Success")) {
             throw new RuntimeException("User not ready for transfer");
         }
+
+
 
         SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
 
@@ -56,18 +52,17 @@ public class TransferService {
                 .compact();
 
         String senderBank = "Next_Gen";
-//      String verificationToken = "test";
 
         com.banking.net_banking_system.utils.FormatDataToTransferCentralHub.DataObject dataObject = FormatDataToTransferCentralHub.formatData(senderAccountNo,senderBank,amount,type,receiverAccountNumber,receiverBank,verificationToken);
 
-        String response = restClient.post()
-                .uri("http://localhost:8081/api/v1/ledger/transactions")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(dataObject)
-                .retrieve()
-                .body(String.class);
+//        String response = restClient.post()
+//                .uri("http://localhost:8081/api/v1/ledger/transactions")
+//                .contentType(MediaType.APPLICATION_JSON)
+//                .body(dataObject)
+//                .retrieve()
+//                .body(String.class);
 //        in a banking system, you don't just want a String back; you want to know if the Central Hub successfully recorded the transaction. You can map the response directly back into a class.
-        System.out.println("Resoonse from centeral hub"+response);
+//        System.out.println("Resoonse from centeral hub"+response);
 
         //api for centeral hub
         // also need to authorize to check if it's bank only
@@ -98,18 +93,3 @@ public class TransferService {
 
 
 }
-
-//Request to centeral hub for transfer ->
-//centeral hub / request is from valid source / can user have that much money ->
-//centeral hub sends response to desti bank -> check if the user can take the money ->
-//dest bank to centeral hub ready to take money ->
-//sourse bank money debdit / withdraw method call ->
-//dest bank ka deposit method call hogayega
-
-//In real-world banking system the first step is manual
-
-//Manual Registration: The Bank admin registers with the Central Hub (using a physical contract or a secure admin portal).
-//
-//The Secret Delivery: The Central Hub generates a Client ID and a Client Secret. These are like a "Username and Password" but for servers.
-//
-//Storage: The Bank stores these secrets in their server's environment variables (.env or application.properties). They never send these in a normal URL or share them.

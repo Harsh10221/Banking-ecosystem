@@ -13,7 +13,7 @@ import java.util.UUID;
 @Entity
 public class LegderModel {
 
-    private enum Transactiontype {
+    public enum Transactiontype {
         DEBIT,CREDIT
     }
 
@@ -27,12 +27,12 @@ public class LegderModel {
     @Column(nullable = false)
     private String transactionId;
 
-    @ManyToOne
-    @JoinColumn(name = "bank")
-    private MasterBalance bankMasterBalance;
+    @Column(nullable = false)
+    private String bank;
 
     @Column(nullable = false)
-    private Transactiontype transactiontype;
+    @Enumerated(EnumType.STRING)
+    private Transactiontype transactionType;
 
     @Column(nullable = false)
     private BigDecimal amount;

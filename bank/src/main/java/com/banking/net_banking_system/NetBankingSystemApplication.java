@@ -1,39 +1,25 @@
 package com.banking.net_banking_system;
 
-//import com.banking.net_banking_system.utils.TransferData;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
-
 @SpringBootApplication
 @EnableScheduling
 public class NetBankingSystemApplication {
-//		@Value("${next_gen.jwt.secret}")
-//		String secretKey ="fafiepgrggt8e4gt41b8r7t4HGrgr8edrgf" ;
-//
-//		SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
-//
-//		String verificationToken = Jwts.builder()
-//				.subject("NXT_GEN")
-//				.signWith(key)
-//				.compact();
-//
-//
-//		public NetBankingSystemApplication(){
-//			System.out.println("veficationtoekn  : "+verificationToken);
-//		}
+
+	//When a deposit or withdraw request initiated by the cetneral hub itself,
+	//what should be in source ? {centeral hub send request to withdraw money or deposit so what to fill in the source field?}
+
+	// when the centeral hub send request for the deposit, find the transaction for the deposit or withdraw is going to perform,
+	// and then set that transaction id as correlationid in all of them as same
+
+	// A method to get info about the pending transaction, {when success or fail centeral hub sends data, if any case
+	// if the bank server is not listening for that particular request then bank explicitly ask about that transaction status
 
 
 	public static void main(String[] args) {
-
-
-//		TransferData transferData = new TransferData();
 		SpringApplication.run(NetBankingSystemApplication.class, args);
 
 
