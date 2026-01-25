@@ -2,23 +2,15 @@ package com.centeral_hub.centeral_hub;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
+@EnableScheduling
 public class CenteralHubApplication {
-//	eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJOWFRfR0VOIn0.Cm8bXo_AVw6RBdfx1l0k86IkceDkHff8JEuTC3VncN8
+
 	public static void main(String[] args) {
 		SpringApplication.run(CenteralHubApplication.class, args);
 	}
 
 }
 
-
-//Bank Server: Verify the User's balance in your bank_db.
-//
-//Bank Server: Send an API call to the Hub.
-//
-//Central Hub: Verify the Bank's "Master Balance" in your hub_db.
-//
-//Central Hub: Update the Ledger (Debit Bank A / Credit Bank B).
-//
-//Bank Server: Once the Hub returns "Success," finalize the transaction.

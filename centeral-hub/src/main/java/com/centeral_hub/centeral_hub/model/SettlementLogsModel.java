@@ -11,7 +11,7 @@ import java.util.UUID;
 @Entity
 public class SettlementLogsModel {
 
-    private enum Direction {
+    public enum Direction {
         INBOUND,OUTBOUND
     }
 
@@ -26,6 +26,7 @@ public class SettlementLogsModel {
     private String bankServiceName;
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private Direction direction;
 
     @Column(nullable = false)

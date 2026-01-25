@@ -14,8 +14,8 @@ import java.util.UUID;
 @Entity
 public class TransactionModel {
 
-    private enum Status{
-        PENDING,VALIDATED,SUCCES,FAILED,REVERSED,INITIATED;
+    public enum Status{
+        PENDING,VALIDATED, SUCCESS,FAILED,REVERSED,INITIATED;
     }
 
 
@@ -42,8 +42,11 @@ public class TransactionModel {
     private BigDecimal amount;
 
 
+    private String errorMsg;
+
+
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", columnDefinition = "varchar(255) default 'INITIATED'")
+    @Column(name = "status", columnDefinition = "varchar(255) ")
     private Status status = Status.INITIATED;
 
     @CreationTimestamp
