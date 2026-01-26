@@ -47,25 +47,25 @@ public class KafkaService {
     }
 
 
-    @Scheduled(fixedRate = 5000)
-    public void monitorQueue() {
-        try {
-            var offsets = adminClient.listConsumerGroupOffsets("banking-group").partitionsToOffsetAndMetadata().get();
-            var topicPartitions = offsets.keySet();
-            var endOffsets = adminClient.listOffsets(topicPartitions.stream().collect(Collectors.toMap(tp -> tp, tp -> OffsetSpec.latest()))).all().get();
-
-            long totalLag = 0;
-            for (var tp : topicPartitions) {
-                long end = endOffsets.get(tp).offset();
-                long current = offsets.get(tp).offset();
-                totalLag += (end - current);
-                // ADD THIS PRINT LINE
-                System.out.println("Partition " + tp.partition() + " | End: " + end + " | Current: " + current);
-            }
-            System.out.println("--- TOTAL LAG: " + totalLag);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+//    @Scheduled(fixedRate = 5000)
+//    public void monitorQueue() {
+//        try {
+//            var offsets = adminClient.listConsumerGroupOffsets("banking-group").partitionsToOffsetAndMetadata().get();
+//            var topicPartitions = offsets.keySet();
+//            var endOffsets = adminClient.listOffsets(topicPartitions.stream().collect(Collectors.toMap(tp -> tp, tp -> OffsetSpec.latest()))).all().get();
+//
+//            long totalLag = 0;
+//            for (var tp : topicPartitions) {
+//                long end = endOffsets.get(tp).offset();
+//                long current = offsets.get(tp).offset();
+//                totalLag += (end - current);
+//                // ADD THIS PRINT LINE
+//                System.out.println("Partition " + tp.partition() + " | End: " + end + " | Current: " + current);
+//            }
+//            System.out.println("--- TOTAL LAG: " + totalLag);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//    }
 
 }
