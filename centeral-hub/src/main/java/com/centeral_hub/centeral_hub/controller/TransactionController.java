@@ -28,8 +28,8 @@ public class TransactionController {
     @Autowired
     KafkaConsumer kafkaConsumer;
 
-    @Autowired
-    KafkaProducer kafkaProducer;
+//    @Autowired
+//    KafkaProducer kafkaProducer;
 
     @Autowired
     JwtAuthentication jwtAuthentication;
@@ -74,11 +74,11 @@ public class TransactionController {
         kafkaConsumer.commitNow();
     }
 
-    @PostMapping("/send")
-    public String postTransaction(@RequestBody String payload){
-        kafkaProducer.sendTransaction(payload);
-        return "Transaction sent to Kafka!";
-    }
+//    @PostMapping("/send")
+//    public String postTransaction(@RequestBody String payload){
+//        kafkaProducer.sendTransaction(payload);
+//        return "Transaction sent to Kafka!";
+//    }
 
 
 }
