@@ -19,5 +19,5 @@ public class ResponseObject<T> {
 
     return ResponseEntity.status(statusCode).body(res);
 
-    };
+    }
 }

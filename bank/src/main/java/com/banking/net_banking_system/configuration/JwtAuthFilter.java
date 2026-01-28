@@ -134,6 +134,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         Cookie[] cookies = request.getCookies();
 //        System.out.println("Before if");
 
+
+
         if (cookies != null) {
             System.out.println("Inside if");
             for (Cookie cookie : cookies) {

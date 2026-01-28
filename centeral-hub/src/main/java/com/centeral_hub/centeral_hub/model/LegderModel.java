@@ -40,6 +40,12 @@ public class LegderModel {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Transactiontype transactiontype;
+    @Column(nullable = false)
+    private String bank;
+
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private Transactiontype transactionType;
 
     @Column(nullable = false)
     private BigDecimal amount;

@@ -1,7 +1,10 @@
 package com.banking.net_banking_system.service;
 
 import com.banking.net_banking_system.repository.AccountRepository;
+import com.banking.net_banking_system.utils.ResponseObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +23,8 @@ public class AccountService {
     private AccountRepository accountRepository;
 	private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+
+
 
     public AccountService(UserRepository userRepository,
                           BCryptPasswordEncoder passwordEncoder) {
@@ -51,8 +56,6 @@ public class AccountService {
         AccountDetails account = new AccountDetails();
         account.setAccountNumber(accountNumber);
         account.setAccountType(accountType.toUpperCase());
-//        account.setBalance(BigDecimal.ZERO);
-//        account.setStatus(AccountDetails.AccountStatus.ACTIVE);
         account.setUser(user);
 
         user.setAccountDetails(account); 
@@ -60,20 +63,18 @@ public class AccountService {
     }
 
 
-    public String validateRecipientAccount(String accountNumber) {
+    public <T> ResponseEntity<ResponseObject<T>> validateRecipientAccount(String accountNumber) {
 
         System.out.println("Accountno"+ accountNumber);
         AccountDetails account = accountRepository.findByAccountNumber(accountNumber)
                 .orElseThrow(() -> new RuntimeException("Account not found."));
-//                .orElseThrow(() -> new RuntimeException("Account not found."));
 
         if (account.getStatus() != AccountDetails.AccountStatus.ACTIVE) {
-            return "Account not found or inacive";
-//            throw new RuntimeException("Account is inactive or blocked.");
+            return ResponseObject.createResponse(400,"Failed",null,HttpStatus.BAD_REQUEST);
         }
 
 
-        return "Success";
+       return ResponseObject.createResponse(200,"Success",null, HttpStatus.ACCEPTED);
 
     }
     

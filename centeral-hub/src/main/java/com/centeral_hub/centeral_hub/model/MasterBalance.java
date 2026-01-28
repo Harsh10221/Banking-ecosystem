@@ -32,18 +32,30 @@ public class MasterBalance {
     private String currency;
 
 //    @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
-    private Status status;
-
-    @CreationTimestamp
-    @Column(name = "created_at",nullable = false,updatable = false)
-    private Timestamp last_updated_at;
-
-//    private String ;
-
-
-
-}
-
-
-
+//    private String bankCode;
+//
+//    @Column(nullable = false)
+//    private BigDecimal balance;
+//
+//    @Column(nullable = false)
+//    private BigDecimal reservedBalance;
+//
+//    @Column(nullable = false)
+//    private String currency;
+//
+////    @Column(nullable = false)
+//    @Enumerated(EnumType.STRING)
+//    private Status status;
+//
+//    @CreationTimestamp
+//    @Column(name = "created_at",nullable = false,updatable = false)
+//    private Timestamp last_updated_at;
+//
+////    private String ;
+//
+//
+//
+//}
+//
+//
+//

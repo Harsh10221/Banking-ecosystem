@@ -1,3 +1,20 @@
 spring:
   application:
     name: centeral-hub
+  kafka:
+    bootstrap-servers: 13.60.254.199:9092
+#    what is the listner and consumer i thought they are same
+    listener:
+      ack-mode: manual_immediate
+      type: single
+      concurrency: 5
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: banking-group
+      auto-offset-reset: earliest
+      max-poll-records: 20
+      fetch-min-size: 1024
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer

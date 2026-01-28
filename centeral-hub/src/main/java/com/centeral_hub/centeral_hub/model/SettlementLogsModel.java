@@ -26,6 +26,7 @@ public class SettlementLogsModel {
     private String bankServiceName;
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private Direction direction;
 
     @Column(nullable = false)

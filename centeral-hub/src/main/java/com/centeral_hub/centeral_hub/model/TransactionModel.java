@@ -48,8 +48,12 @@ public class TransactionModel {
     @Column(nullable = false)
     private BigDecimal amount;
 
+
+    private String errorMsg;
+
+
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", length = 50)
+    @Column(name = "status", columnDefinition = "varchar(255) ")
     private Status status = Status.INITIATED;
 
     // Efficient: Use LocalDateTime (standard since Java 8) instead of legacy Timestamp

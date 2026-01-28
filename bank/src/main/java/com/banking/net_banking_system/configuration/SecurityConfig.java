@@ -33,7 +33,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Add this!
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.FORWARD).permitAll() // Must have this!
-                        .requestMatchers("/", "/api/onboarding/**","/account/validate", "/api/auth/**","/login/**", "/WEB-INF/jsp/**","/transfermoney","/error").permitAll() // Allow these endpoints
+                        .requestMatchers("/", "/api/onboarding/**","/account/validate", "/api/auth/**","/login/**", "/WEB-INF/jsp/**","/transfermoney","/error","/api/transaction/webhook/transfer","/api/transaction/transfer","/api/transaction/testkafka").permitAll() // Allow these endpoints
                         .requestMatchers("/api/transaction/transfermoney**", "/error","/api/transaction/deposit", "/api/transaction/withdraw").permitAll()
 //                        .requestMatchers("/api/transaction/transfermoney**", "/error").permitAll()
                         .requestMatchers("/home").authenticated()

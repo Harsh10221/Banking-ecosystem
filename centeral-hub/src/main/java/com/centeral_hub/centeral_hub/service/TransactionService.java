@@ -3,13 +3,24 @@ package com.centeral_hub.centeral_hub.service;
 import com.centeral_hub.centeral_hub.model.LegderModel;
 import com.centeral_hub.centeral_hub.model.TransactionModel;
 import com.centeral_hub.centeral_hub.repository.LedgerRepository;
+import com.centeral_hub.centeral_hub.model.SettlementLogsModel;
+import com.centeral_hub.centeral_hub.model.TransactionModel;
+import com.centeral_hub.centeral_hub.repository.LedgerRepository;
+import com.centeral_hub.centeral_hub.repository.SettlementRepository;
 import com.centeral_hub.centeral_hub.repository.TransactionRepository;
+import com.centeral_hub.centeral_hub.utils.KafkaMonitorService;
+import com.centeral_hub.centeral_hub.utils.ResponseObject;
+import com.centeral_hub.centeral_hub.utils.TransactionCheck;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
@@ -19,192 +30,362 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
+
 public class TransactionService {
 
     private static final Logger logger = LoggerFactory.getLogger(TransactionService.class);
 
-    private final TransactionRepository transactionRepository;
-    private final LedgerRepository ledgerRepository;
-    private final RestClient restClient;
+    //    for every bank there will be different secret, the bank will send there token and there bank code "Bob"
+//    then we will first try to decode the token if it works then we will use that as the sender bank name.
+    @Value("${next_gen_bank_secret}")
+    private String secretKeyOfNextBank;
 
     @Autowired
-    public TransactionService(TransactionRepository transactionRepository, 
-                              LedgerRepository ledgerRepository, 
-                              RestClient restClient) {
-        this.transactionRepository = transactionRepository;
-        this.ledgerRepository = ledgerRepository;
-        this.restClient = restClient;
-    }
+    private TransactionRepository transactionRepository;
 
-    public String processInboundTransfer(TransactionModel transactionModel, String token) {
-        
-        // 1. Initialize Transaction Status
-        transactionModel.setCorrelationId(UUID.randomUUID());
-        transactionModel.setStatus(TransactionModel.Status.INITIATED);
-        transactionModel.setCreatedAt(LocalDateTime.now());
-        transactionModel.setUpdatedAt(LocalDateTime.now());
-        
-        transactionRepository.save(transactionModel);
+    @Autowired
+    private RestClient restClient;
 
-        String receiverAccountNo = transactionModel.getReceiverAccountNumber();
-        String senderAccountNo = transactionModel.getSenderAccountNumber();
-        BigDecimal amount = transactionModel.getAmount();
+    @Autowired
+    private TransactionTemplate transactionTemplate;
+
+    @Autowired
+    private SettlementRepository settlementRepository;
+
+    @Autowired
+    private LedgerRepository ledgerRepository;
+
+    @Autowired
+    private TransactionCheck transactionCheck;
+
+    @Autowired
+    private KafkaMonitorService kafkaMonitorService;
+
+    private Long existingTransactionId;
+
+    UUID uuid = UUID.randomUUID();
+
+
+    /// There is no sense of returning a ResponseEntity
+    public ResponseEntity<?> processInboundTransfer(String senderAccountNo, String senderBank, BigDecimal amount, String type, String receiverAccountNo, String receiverBank, String bankToken, String userRequestKey) {
+
+
+        if (senderAccountNo == null || amount.compareTo(BigDecimal.ZERO) <= 0 || !type.equals("Debit") || receiverAccountNo == null || receiverBank == null || bankToken == null || userRequestKey == null) {
+            /// Sender bank name was removed
+
+            JsonNode response = restClient.post()
+                    .uri("/api/transaction/webhook/transfer")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("Fields required", "Failed,field error"))
+                    .retrieve()
+                    .body(JsonNode.class);
+
+
+            return ResponseEntity.badRequest().body("Error: Fields are required");
+        }
+
+
+        TransactionCheck.TransactionStatus status = transactionCheck.checkAndProcess(userRequestKey);
+
+
+
+        if (status == TransactionCheck.TransactionStatus.ALREADY_PROCESSING) {
+            return ResponseEntity.badRequest().body("Redis, Transaction is already in process");
+        }
 
         // Resolve Bank URLs
         String receiverBankUrl = resolveBankUrl(transactionModel.getReceiverBank());
         String senderBankUrl = resolveBankUrl(transactionModel.getSenderBank());
 
-        logger.info("Starting Transaction: {} | Amount: {}", transactionModel.getCorrelationId(), amount);
+        transactionModel.setSenderBank(bankToken);
+        transactionModel.setReceiverBank(receiverBank);
+        transactionModel.setReceiverAccountNumber(receiverAccountNo);
+        transactionModel.setAmount(amount);
+        transactionModel.setSenderAccountNumber(senderAccountNo);
+        transactionModel.setCorrelationId(uuid);
 
         try {
-            // =================================================================
-            // STEP 1: VALIDATE RECEIVER
-            // =================================================================
-            try {
-                // Note: The URL is constructed using the resolved Bank URL
-                String validationResponse = restClient.post()
-                        .uri(receiverBankUrl + "/account/validate")
+            TransactionModel savedTransaction = transactionRepository.save(transactionModel);
+            existingTransactionId = savedTransaction.getTransactionId();
+
+            UUID correlationId = savedTransaction.getCorrelationId();
+
+            if (correlationId == null) {
+
+                var requestBody = Map.of(
+                        "AccountNo", senderAccountNo,
+                        "amount", amount,
+                        "receiverAccountNumber", receiverAccountNo,
+                        "receiverBank", receiverBank,
+                        "Error", "CorrelationId error, id not generated"
+                );
+
+                ResponseObject.createResponseObj(400, "Failed correlationId", null);
+
+                JsonNode response = restClient.post()
+                        .uri("/api/transaction/webhook/transfer")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .body(Map.of("accountNo", receiverAccountNo))
-                        .retrieve()
-                        .body(String.class);
-
-                if (!"Success".equals(validationResponse)) {
-                    logger.warn("Validation failed for receiver: {}", receiverAccountNo);
-                    updateTransactionStatus(transactionModel, TransactionModel.Status.FAILED);
-                    return "Transaction Failed: Receiver Account Invalid";
-                }
-            } catch (Exception e) {
-                logger.error("Network error validating receiver", e);
-                updateTransactionStatus(transactionModel, TransactionModel.Status.FAILED);
-                return "Transaction Failed: Receiver Bank Unreachable";
-            }
-
-            // =================================================================
-            // STEP 2: WITHDRAW FROM SENDER (The Point of No Return)
-            // =================================================================
-            Map<String, Object> withdrawData = new HashMap<>();
-            withdrawData.put("accountNumber", senderAccountNo);
-            withdrawData.put("amount", amount);
-            withdrawData.put("type", "Withdraw");
-
-            JsonNode withdrawResponse;
-            try {
-                withdrawResponse = restClient.post()
-                        .uri(senderBankUrl + "/api/transaction/withdraw")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body(withdrawData)
+                        .body(requestBody)
                         .retrieve()
                         .body(JsonNode.class);
-            } catch (Exception e) {
-                logger.error("Sender withdrawal failed", e);
-                updateTransactionStatus(transactionModel, TransactionModel.Status.FAILED);
-                return "Transaction Failed: Sender Bank Unreachable";
+                System.out.println("response " + response);
+
+                savedTransaction.setStatus(TransactionModel.Status.FAILED);
+                savedTransaction.setErrorMsg("Correlation ID is missing");
+
+                transactionRepository.save(savedTransaction);
+
+                return ResponseEntity.internalServerError().body("Transaction saved, but correlation Id is missing");
             }
 
-            if (withdrawResponse == null || withdrawResponse.get("statusCode").asInt() != 200) {
-                logger.warn("Sender withdrawal rejected: {}", withdrawResponse);
-                updateTransactionStatus(transactionModel, TransactionModel.Status.FAILED);
-                return "Transaction Failed: Sender Withdrawal Declined";
-            }
 
-            // =================================================================
-            // STEP 3: DEPOSIT TO RECEIVER (Critical Phase)
-            // =================================================================
-            Map<String, Object> depositData = new HashMap<>();
-            depositData.put("accountNumber", receiverAccountNo);
-            depositData.put("amount", amount);
-            depositData.put("type", "Credit");
+            JsonNode accountValidateResponse = restClient.post()
+                    .uri("/account/validate")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("accountNo", receiverAccountNo))
+                    .retrieve()
+                    .onStatus(HttpStatusCode::isError, ((request, response) -> {
+                    }))
+                    .body(JsonNode.class);
 
-            boolean depositSuccess = false;
-            try {
-                JsonNode depositResponse = restClient.post()
-                        .uri(receiverBankUrl + "/api/transaction/deposit")
+            String message = accountValidateResponse.get("message").asText();
+            int statusCode = accountValidateResponse.get("statusCode").asInt();
+
+            SettlementLogsModel settlementLogsModel = new SettlementLogsModel();
+
+            if (!message.equalsIgnoreCase("Success") || statusCode != 200) {
+                transactionTemplate.execute(status1 -> {
+
+                    savedTransaction.setStatus(TransactionModel.Status.FAILED);
+                    savedTransaction.setErrorMsg(message);
+
+                    settlementLogsModel.setCorrelationId(correlationId);
+                    settlementLogsModel.setBankServiceName(bankToken);
+                    settlementLogsModel.setDirection(SettlementLogsModel.Direction.OUTBOUND);
+                    settlementLogsModel.setResponseCode(String.valueOf(statusCode));
+                    settlementLogsModel.setRawPayload(accountValidateResponse.toString());
+                    settlementLogsModel.setRetryCount(0);
+
+                    settlementRepository.save(settlementLogsModel);
+                    return null;
+                });
+                JsonNode response = restClient.post()
+                        .uri("/api/transaction/webhook/transfer")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .body(depositData)
+                        .body(Map.of("Account validation", "Failed, error"))
                         .retrieve()
                         .body(JsonNode.class);
 
-                if (depositResponse != null && depositResponse.get("statusCode").asInt() == 200) {
-                    depositSuccess = true;
-                }
-            } catch (Exception e) {
-                logger.error("Deposit request failed", e);
-                depositSuccess = false;
+                System.out.println("Account validation " + response);
+
+                return ResponseEntity.badRequest().body("Account validation failed");
+
             }
 
-            if (depositSuccess) {
-                // Both succeeded
-                logger.info("Transaction Completed: {}", transactionModel.getCorrelationId());
-                updateTransactionStatus(transactionModel, TransactionModel.Status.COMPLETED);
+            savedTransaction.setStatus(TransactionModel.Status.VALIDATED);
+            transactionRepository.save(savedTransaction);
 
-                // Create Ledger Entry
-                LegderModel ledgerEntry = new LegderModel();
-                ledgerEntry.setTransactionId(transactionModel.getTransactionId());
-                ledgerEntry.setCorrelationId(transactionModel.getCorrelationId());
-                ledgerEntry.setAmount(amount);
-                ledgerEntry.setSenderBank(transactionModel.getSenderBank());
-                ledgerEntry.setReceiverBank(transactionModel.getReceiverBank());
-                ledgerEntry.setTransactiontype(LegderModel.Transactiontype.DEBIT);
-                ledgerEntry.setCreatedAt(LocalDateTime.now());
-                
-                ledgerRepository.save(ledgerEntry);
+            //withdraw
+            var withdrawDataBody = Map.of(
+                    "accountNumber", senderAccountNo,
+                    "type", "Withdraw",
+                    "amount", amount
+            );
 
-                return "Transfer Successful";
-            } else {
-                // =================================================================
-                // CRITICAL: SAGA COMPENSATION (ROLLBACK)
-                // =================================================================
-                logger.error("CRITICAL: Deposit failed. Initiating REFUND for Sender: {}", senderAccountNo);
-                
-                boolean refundSuccess = performCompensatingTransaction(senderBankUrl, senderAccountNo, amount);
-                
-                if (refundSuccess) {
-                    updateTransactionStatus(transactionModel, TransactionModel.Status.FAILED);
-                    return "Transaction Failed: Receiver Deposit Failed (Funds have been refunded)";
-                } else {
-                    // Alert Admin: Money is stuck!
-                    updateTransactionStatus(transactionModel, TransactionModel.Status.REVERSED); 
-                    return "Transaction Failed: CRITICAL ERROR - Funds deducted but not refunded. Contact Support.";
-                }
+
+            JsonNode withdrawInitiateRequest = restClient.post()
+                    .uri("/api/transaction/withdraw")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(withdrawDataBody)
+                    .retrieve()
+                    .onStatus(HttpStatusCode::isError, (((request, response) -> {
+                    })))
+                    .body(JsonNode.class);
+
+
+            String withdrawStatus = withdrawInitiateRequest.get("statusCode").asText();
+            String withdrawMsg = withdrawInitiateRequest.get("message").asText();
+            String withdrawResponseMsg = withdrawInitiateRequest.toString();
+
+            SettlementLogsModel settlementLogsModel1 = new SettlementLogsModel();
+
+            if (!withdrawInitiateRequest.get("statusCode").asText().equals("200")) {
+                transactionTemplate.execute(status1 -> {
+                    savedTransaction.setStatus(TransactionModel.Status.FAILED);
+                    savedTransaction.setErrorMsg(withdrawMsg);
+
+                    settlementLogsModel1.setCorrelationId(correlationId);
+                    settlementLogsModel1.setBankServiceName(receiverBank);
+                    settlementLogsModel1.setDirection(SettlementLogsModel.Direction.OUTBOUND);
+                    settlementLogsModel1.setResponseCode(withdrawStatus);
+                    settlementLogsModel1.setRawPayload(withdrawResponseMsg);
+                    settlementLogsModel1.setRetryCount(0);
+
+                    settlementRepository.save(settlementLogsModel1);
+                    return null;
+
+                });
+
+                var requestBody = Map.of(
+                        "Message", "Transaction Failed",
+                        "senderAccountNumber", senderAccountNo,
+                        "senderBank", bankToken,
+                        "receiverAccountNumber", receiverAccountNo,
+                        "receiverBank", receiverBank,
+                        "amount", amount,
+                        "Status", "False",
+                        "Error",withdrawMsg
+                );
+
+                JsonNode response = restClient.post()
+                        .uri("/api/transaction/webhook/transfer")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(requestBody)
+                        .retrieve()
+                        .body(JsonNode.class);
+
+                return ResponseEntity.internalServerError().body("There was an error in the withdraw");
             }
+            transactionTemplate.execute(status1 -> {
 
-        } catch (Exception e) {
-            logger.error("Unexpected system error", e);
-            updateTransactionStatus(transactionModel, TransactionModel.Status.FAILED);
-            return "Transaction Failed: " + e.getMessage();
-        }
-    }
+                settlementLogsModel1.setCorrelationId(correlationId);
+                settlementLogsModel1.setBankServiceName(receiverBank);
+                settlementLogsModel1.setDirection(SettlementLogsModel.Direction.OUTBOUND);
+                settlementLogsModel1.setResponseCode(withdrawStatus);
+                settlementLogsModel1.setRawPayload(withdrawResponseMsg);
+                settlementLogsModel1.setRetryCount(0);
 
-    /**
-     * SAGA PATTERN: Compensating Transaction
-     * Reverses the withdrawal if the deposit fails.
-     */
-    private boolean performCompensatingTransaction(String bankUrl, String accountNumber, BigDecimal amount) {
-        try {
-            Map<String, Object> refundData = new HashMap<>();
-            refundData.put("accountNumber", accountNumber);
-            refundData.put("amount", amount);
-            refundData.put("type", "Credit"); // Refund = Credit back the money
+                savedTransaction.setStatus(TransactionModel.Status.PENDING);
 
-            JsonNode refundResponse = restClient.post()
-                    .uri(bankUrl + "/api/transaction/deposit") // Uses deposit endpoint to refund
+                settlementRepository.save(settlementLogsModel1);
+
+                return null;
+            });
+
+            var depositDataBody = Map.of(
+                    "accountNumber", receiverAccountNo,
+                    "type", "Deposit",
+                    "amount", amount
+            );
+
+            JsonNode depositInitiateRequest = restClient.post()
+                    .uri("/api/transaction/deposit")
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(refundData)
                     .retrieve()
+                    .onStatus(HttpStatusCode::isError, (((request, response) -> {
+                    })))
                     .body(JsonNode.class);
 
-            if (refundResponse != null && refundResponse.get("statusCode").asInt() == 200) {
-                logger.info("REFUND SUCCESSFUL for Account: {}", accountNumber);
-                return true;
-            } else {
-                logger.error("REFUND REJECTED by Bank. Response: {}", refundResponse);
-                return false;
+            String depositStatus = depositInitiateRequest.get("statusCode").asText();
+            String depositResponseMsg = depositInitiateRequest.toString();
+
+
+            SettlementLogsModel settlementLogsModel2 = new SettlementLogsModel();
+            if (!depositStatus.equals("200")) {
+                transactionTemplate.execute(status1 -> {
+                    savedTransaction.setStatus(TransactionModel.Status.FAILED);
+                    savedTransaction.setErrorMsg(depositResponseMsg);
+
+                    settlementLogsModel2.setCorrelationId(correlationId);
+                    settlementLogsModel2.setBankServiceName(senderBank);
+                    settlementLogsModel2.setDirection(SettlementLogsModel.Direction.OUTBOUND);
+                    settlementLogsModel2.setResponseCode(depositStatus);
+                    settlementLogsModel2.setRawPayload(depositResponseMsg);
+                    settlementLogsModel2.setRetryCount(0);
+
+                    settlementRepository.save(settlementLogsModel2);
+
+                    return null;
+                });
+                return ResponseEntity.internalServerError().body("There was an error in the Deposit in receiver bank");
+
             }
+
+            transactionTemplate.execute(status1 -> {
+
+                settlementLogsModel2.setCorrelationId(correlationId);
+                settlementLogsModel2.setBankServiceName(bankToken);
+                settlementLogsModel2.setDirection(SettlementLogsModel.Direction.OUTBOUND);
+                settlementLogsModel2.setResponseCode(depositStatus);
+                settlementLogsModel2.setRawPayload(depositResponseMsg);
+                settlementLogsModel2.setRetryCount(0);
+
+                savedTransaction.setStatus(TransactionModel.Status.SUCCESS);
+                settlementRepository.save(settlementLogsModel2);
+
+                LegderModel debit = new LegderModel();
+                debit.setCorrelationId(correlationId);
+                debit.setTransactionId(String.valueOf(savedTransaction.getTransactionId()));
+                debit.setTransactionType(LegderModel.Transactiontype.DEBIT);
+                debit.setAmount(amount);
+                debit.setBank(bankToken);
+                debit.setDescription("Transfer to " + receiverBank + " bank");
+                ledgerRepository.save(debit);
+
+                LegderModel credit = new LegderModel();
+                credit.setCorrelationId(correlationId);
+                credit.setTransactionId(String.valueOf(savedTransaction.getTransactionId()));
+                credit.setTransactionType(LegderModel.Transactiontype.CREDIT);
+                credit.setAmount(amount);
+                credit.setBank(receiverBank);
+                credit.setDescription("Received from " + senderBank + " bank");
+
+                ledgerRepository.save(credit);
+
+                return null;
+            });
+
+            var requestBody = Map.of(
+                    "Message", "Transaction success",
+                    "senderAccountNumber", senderAccountNo,
+                    "senderBank", bankToken,
+                    "receiverAccountNumber", receiverAccountNo,
+                    "receiverBank", receiverBank,
+                    "amount", amount,
+                    "Status", "True"
+            );
+
+            JsonNode response = restClient.post()
+                    .uri("/api/transaction/webhook/transfer")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(requestBody)
+                    .retrieve()
+                    .body(JsonNode.class);
+
+
+
+            return ResponseEntity.ok("Success");
+
+
+
         } catch (Exception e) {
-            logger.error("REFUND NETWORK ERROR. Manual Reconciliation Required for Account: " + accountNumber, e);
-            return false;
+            transactionRepository.changeStatusAndAddErrorMsg(existingTransactionId, TransactionModel.Status.FAILED, e.getMessage());
+
+            var requestBody = Map.of(
+                    "Message", "Transaction Failed",
+                    "senderAccountNumber", senderAccountNo,
+                    "senderBank", bankToken,
+                    "receiverAccountNumber", receiverAccountNo,
+                    "receiverBank", receiverBank,
+                    "amount", amount,
+                    "Status", "False",
+                    "Error", e.getMessage()
+            );
+
+            JsonNode response = restClient.post()
+                    .uri("/api/transaction/webhook/transfer")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(requestBody)
+                    .retrieve()
+                    .body(JsonNode.class);
+
+
+            return ResponseEntity.badRequest().body("bad") ;
+//            throw new RuntimeException("Error in catch block ", e);
+
         }
+
     }
 
     private void updateTransactionStatus(TransactionModel transaction, TransactionModel.Status status) {
