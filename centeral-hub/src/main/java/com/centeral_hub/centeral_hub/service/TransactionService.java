@@ -1,6 +1,8 @@
 package com.centeral_hub.centeral_hub.service;
 
 import com.centeral_hub.centeral_hub.model.LegderModel;
+import com.centeral_hub.centeral_hub.model.TransactionModel;
+import com.centeral_hub.centeral_hub.repository.LedgerRepository;
 import com.centeral_hub.centeral_hub.model.SettlementLogsModel;
 import com.centeral_hub.centeral_hub.model.TransactionModel;
 import com.centeral_hub.centeral_hub.repository.LedgerRepository;
@@ -10,9 +12,8 @@ import com.centeral_hub.centeral_hub.utils.KafkaMonitorService;
 import com.centeral_hub.centeral_hub.utils.ResponseObject;
 import com.centeral_hub.centeral_hub.utils.TransactionCheck;
 import com.fasterxml.jackson.databind.JsonNode;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
@@ -22,9 +23,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.client.RestClient;
 
-import javax.crypto.SecretKey;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -32,6 +33,7 @@ import java.util.UUID;
 
 public class TransactionService {
 
+    private static final Logger logger = LoggerFactory.getLogger(TransactionService.class);
 
     //    for every bank there will be different secret, the bank will send there token and there bank code "Bob"
 //    then we will first try to decode the token if it works then we will use that as the sender bank name.
@@ -91,7 +93,9 @@ public class TransactionService {
             return ResponseEntity.badRequest().body("Redis, Transaction is already in process");
         }
 
-        TransactionModel transactionModel = new TransactionModel();
+        // Resolve Bank URLs
+        String receiverBankUrl = resolveBankUrl(transactionModel.getReceiverBank());
+        String senderBankUrl = resolveBankUrl(transactionModel.getSenderBank());
 
         transactionModel.setSenderBank(bankToken);
         transactionModel.setReceiverBank(receiverBank);
@@ -267,7 +271,7 @@ public class TransactionService {
             JsonNode depositInitiateRequest = restClient.post()
                     .uri("/api/transaction/deposit")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(depositDataBody)
+                    .body(refundData)
                     .retrieve()
                     .onStatus(HttpStatusCode::isError, (((request, response) -> {
                     })))
@@ -384,10 +388,18 @@ public class TransactionService {
 
     }
 
-    public String dispatchOutboundTransfer() {
-
-        return "success";
+    private void updateTransactionStatus(TransactionModel transaction, TransactionModel.Status status) {
+        transaction.setStatus(status);
+        transaction.setUpdatedAt(LocalDateTime.now());
+        transactionRepository.save(transaction);
     }
-
+    
+    // Helper to resolve Bank URLs based on Bank Name/ID
+    private String resolveBankUrl(String bankName) {
+        // NOTE: In production, this should query a Service Registry (Eureka) or Database.
+        // For now, if your base URL in RestConfig is "http://localhost:8080", 
+        // returning an empty string "" will use that base URL.
+        // Or you can return specific URLs for different banks.
+        return ""; 
+    }
 }
-

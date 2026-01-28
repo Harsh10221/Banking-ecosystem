@@ -1,24 +1,36 @@
-//package com.centeral_hub.centeral_hub.model;
-//
-//import jakarta.persistence.*;
-//import lombok.Data;
-//import org.hibernate.annotations.CreationTimestamp;
-//
-//import java.math.BigDecimal;
-//import java.sql.Timestamp;
-//
-//@Data
-//@Entity
-//public class MasterBalance {
-//
-//    enum Status{
-//        ACTIVE,FROZE
-//    }
-//
-//    @Id
-//    @GeneratedValue(strategy = GenerationType.IDENTITY)
-//    private Long bankId;
-//
+package com.centeral_hub.centeral_hub.model;
+
+import jakarta.persistence.*;
+import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+
+@Data
+@Entity
+public class MasterBalance {
+
+    public enum Status{
+        ACTIVE,FROZE
+    }
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long bankId;
+
+    @Column(nullable = false)
+    private String bankCode;
+
+    @Column(nullable = false)
+    private BigDecimal balance;
+
+    @Column(nullable = false)
+    private BigDecimal reservedBalance;
+
+    @Column(nullable = false)
+    private String currency;
+
 //    @Column(nullable = false)
 //    private String bankCode;
 //

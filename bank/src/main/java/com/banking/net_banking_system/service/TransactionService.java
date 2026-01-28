@@ -9,6 +9,8 @@ import com.banking.net_banking_system.repository.TransactionRepository;
 import com.banking.net_banking_system.repository.UserRepository;
 import com.banking.net_banking_system.utils.FormatDataToTransferCentralHub;
 import com.banking.net_banking_system.utils.ResponseObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -19,7 +21,7 @@ import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchPropert
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestClient;
@@ -31,8 +33,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.function.Predicate;
 
-@Controller
+@Service
 public class TransactionService {
+
+    private static final Logger logger = LoggerFactory.getLogger(TransactionService.class);
 
     @Autowired
     private TransactionRepository transactionRepository;

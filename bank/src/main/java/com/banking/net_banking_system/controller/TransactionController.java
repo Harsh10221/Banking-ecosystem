@@ -1,5 +1,7 @@
 package com.banking.net_banking_system.controller;
 
+import com.banking.net_banking_system.model.AccountDetails;
+import com.banking.net_banking_system.repository.AccountRepository;
 import com.banking.net_banking_system.model.Transaction;
 import com.banking.net_banking_system.model.User;
 import com.banking.net_banking_system.repository.TransactionRepository;
@@ -10,6 +12,7 @@ import com.banking.net_banking_system.utils.FormatDataToTransferCentralHub;
 import com.banking.net_banking_system.utils.ResponseObject;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +31,7 @@ public class TransactionController {
     private TransferService transferService;
 
     @Autowired
+    private AccountRepository accountRepository;
     private TransactionRepository transactionRepository;
 
     @Autowired
@@ -36,9 +40,14 @@ public class TransactionController {
     @PostMapping("/deposit")
     public ResponseEntity<?> initiateDepositTransaction(@RequestBody Map<String, String> payload) {
 
-        String accountNumber = payload.get("accountNumber");
-        String type = payload.get("type");
+    // Endpoint for User to start the transfer
+    @PostMapping("/transfermoney")
+    public FormatDataToTransferCentralHub.DataObject initiateDebitRequest(@RequestBody Map<String, String> payload) {
+        String senderAccountNumber = payload.get("senderAccountNo");
         Long amount = Long.parseLong(payload.get("amount"));
+        String type = payload.get("type");
+        String receiverAccountNumber = payload.get("receiverAccountNumber");
+        String receiverBank = payload.get("receiverBank");
 //        Long userId = Long.parseLong(payload.get("userId"));
         /// remove the user if when not testing
         Long userId = 2L;
@@ -48,9 +57,16 @@ public class TransactionController {
 
         return transactionService.depositTransaction(accountNumber, type, amount, userId);
 
-//        return "suces";
+        return transferService.initiateWithdrawTransfer(
+                senderAccountNumber,
+                BigDecimal.valueOf(amount),
+                type,
+                receiverAccountNumber,
+                receiverBank
+        );
     }
 
+    // Callback from Central Hub: Withdraw Money
     @PostMapping("/withdraw")
     public ResponseEntity<?> initiateWithdrawTransaction(@RequestBody Map<String, String> payload) {
 
@@ -67,9 +83,27 @@ public class TransactionController {
         return transactionService.withdrawTransaction(accountNumber, type, amount, userId);
 //        return ResponseEntity
 
-//        return "suces";
+        return transactionService.withdrawTransaction(accountNumber, type, amount, userId);
     }
 
+    // Callback from Central Hub: Deposit Money
+    @PostMapping("/deposit")
+    public ResponseEntity<ResponseObject<String>> initiateDepositTransaction(@RequestBody Map<String, String> payload) {
+        String accountNumber = payload.get("accountNumber");
+        String type = payload.get("type");
+        Long amount = Long.parseLong(payload.get("amount"));
+
+        Long userId = fetchUserIdByAccount(accountNumber);
+
+        return transactionService.depositTransaction(accountNumber, type, amount, userId);
+    }
+
+    private Long fetchUserIdByAccount(String accountNumber) {
+        AccountDetails account = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new RuntimeException("Account not found: " + accountNumber));
+        return account.getUser().getId();
+    }
+}
 
 //    @PostMapping("/transfermoney")
 //    public FormatDataToTransferCentralHub.DataObject initiateDebitRequest(@RequestBody Map<String, String> payload) {
