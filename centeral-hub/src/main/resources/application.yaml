@@ -2,7 +2,7 @@ spring:
   application:
     name: centeral-hub
   kafka:
-    bootstrap-servers: 13.60.254.199:9092
+    bootstrap-servers: 13.60.226.2:9092
 #    what is the listner and consumer i thought they are same
     listener:
       ack-mode: manual_immediate

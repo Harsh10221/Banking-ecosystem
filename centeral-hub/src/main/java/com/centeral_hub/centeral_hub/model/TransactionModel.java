@@ -1,35 +1,28 @@
 package com.centeral_hub.centeral_hub.model;
 
+
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
-
+import java.sql.Timestamp;
 import java.util.UUID;
 
 @Data
 @Entity
-@Table(name = "transaction_model")
 public class TransactionModel {
 
-    public enum Status {
-        PENDING, 
-        VALIDATED, 
-        SUCCESS, 
-        COMPLETED, // Added missing status
-        FAILED, 
-        REVERSED, 
-        INITIATED
+    public enum Status{
+        INITIATED,WITHDRAW_SUCCESS,WITHDRAW_FAILED, DEPOSIT_SUCCESS,DEPOSIT_FAILED,REFUND_SUCCESS,REFUND_FAILED;
     }
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long transactionId;
 
-    // Best Practice: Store UUIDs as Strings for easier debugging and cross-DB compatibility
     @Column(name = "correlation_id", nullable = false)
     private UUID correlationId;
 
@@ -56,12 +49,15 @@ public class TransactionModel {
     @Column(name = "status", columnDefinition = "varchar(255) ")
     private Status status = Status.INITIATED;
 
-    // Efficient: Use LocalDateTime (standard since Java 8) instead of legacy Timestamp
     @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "created_at",nullable = false,updatable = false)
+    private Timestamp createdAt;
 
     @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    private Timestamp updatedAt;
+
+
+
 }
+
+

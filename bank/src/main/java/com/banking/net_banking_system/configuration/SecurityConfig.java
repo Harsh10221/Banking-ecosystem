@@ -22,22 +22,16 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-//        {
-//            "/account/validate"
-//        it should be shifted into the authinticated route
-//        }
 
         http
-                .csrf(csrf -> csrf.disable()) // Disable CSRF for Postman testing
+                .csrf(csrf -> csrf.disable())
                 .securityContext(context -> context.requireExplicitSave(false))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Add this!
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.FORWARD).permitAll() // Must have this!
                         .requestMatchers("/", "/api/onboarding/**","/account/validate", "/api/auth/**","/login/**", "/WEB-INF/jsp/**","/transfermoney","/error","/api/transaction/webhook/transfer","/api/transaction/transfer","/api/transaction/testkafka").permitAll() // Allow these endpoints
                         .requestMatchers("/api/transaction/transfermoney**", "/error","/api/transaction/deposit", "/api/transaction/withdraw").permitAll()
-//                        .requestMatchers("/api/transaction/transfermoney**", "/error").permitAll()
                         .requestMatchers("/home").authenticated()
-//                        .requestMatchers("/api/transaction/deposit", "/api/transaction/withdraw", "/home").authenticated()
                         .anyRequest().authenticated()
                 ).formLogin(login -> login.disable())
                 .httpBasic(basic -> basic.disable())

@@ -23,17 +23,12 @@ public class UserController {
     private AuthService authService;
 
     @PostMapping("/login")
-//<<<<<<< HEAD
-//    public String login(@RequestBody Map<String, String> payload, HttpServletResponse response) {
-//=======
+
     public ResponseEntity<?> login(@RequestBody Map<String, String> payload, HttpServletResponse response) {
-        String email = payload.get("username");
+       try{
+        System.out.println(payload);
+        String email = payload.get("email");
         String password = payload.get("password");
-
-
-//<<<<<<< HEAD
-//        return authService.login(email, password, response);
-//=======
         String result = authService.login(email, password, response);
         
         if ("success".equalsIgnoreCase(result)) {
@@ -44,7 +39,9 @@ public class UserController {
         } else {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                                  .body(Map.of("success", false, "message", result));
-        }
+        }} catch (RuntimeException e) {
+           throw new RuntimeException(e);
+       }
     }
     
     @GetMapping("/logout")
@@ -55,7 +52,6 @@ public class UserController {
         cookie.setMaxAge(0); // Delete the cookie
         response.addCookie(cookie);
         return "redirect:/login";
-//>>>>>>> main
     }
 
 }

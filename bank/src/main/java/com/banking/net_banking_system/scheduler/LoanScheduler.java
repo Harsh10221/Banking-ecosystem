@@ -1,7 +1,7 @@
 package com.banking.net_banking_system.scheduler;
 
-import com.banking.net_banking_system.model.EmiSchedule;
-import com.banking.net_banking_system.model.LoanDetails;
+import com.banking.net_banking_system.model.EmiScheduleModel;
+import com.banking.net_banking_system.model.LoanDetailsModel;
 import com.banking.net_banking_system.repository.EmiScheduleRepository;
 import com.banking.net_banking_system.repository.LoanRepository;
 
@@ -27,10 +27,10 @@ public class LoanScheduler {
         LocalDate today = LocalDate.now();
         
         // Find unpaid EMIs where due date has passed
-        List<EmiSchedule> overdueEmis = emiScheduleRepository.findByStatusAndDueDateBefore("UNPAID", today);
+        List<EmiScheduleModel> overdueEmis = emiScheduleRepository.findByStatusAndDueDateBefore("UNPAID", today);
 
      // Inside LoanScheduler.java
-        for (EmiSchedule emi : overdueEmis) {
+        for (EmiScheduleModel emi : overdueEmis) {
             emi.setStatus("OVERDUE");
 
             // 1. Calculate the 2% penalty
@@ -38,7 +38,7 @@ public class LoanScheduler {
             emi.setPenaltyAmount(penalty);
 
             // 2. Update the Loan's total amounts to include this new fee
-            LoanDetails loan = emi.getLoan();
+            LoanDetailsModel loan = emi.getLoan();
             loan.setTotalRepaymentAmount(loan.getTotalRepaymentAmount().add(penalty));
             loan.setTotalAmountRemaining(loan.getTotalAmountRemaining().add(penalty));
 

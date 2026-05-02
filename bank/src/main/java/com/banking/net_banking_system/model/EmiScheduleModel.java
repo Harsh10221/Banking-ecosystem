@@ -8,7 +8,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "emi_schedule")
-public class EmiSchedule {
+public class EmiScheduleModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -17,7 +17,7 @@ public class EmiSchedule {
     @ManyToOne
     @JoinColumn(name = "loan_id", nullable = false)
     @JsonIgnore
-    private LoanDetails loan;
+    private LoanDetailsModel loan;
 
     private LocalDate dueDate;
     
@@ -33,8 +33,8 @@ public class EmiSchedule {
     
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-    public LoanDetails getLoan() { return loan; }
-    public void setLoan(LoanDetails loan) { this.loan = loan; }
+    public LoanDetailsModel getLoan() { return loan; }
+    public void setLoan(LoanDetailsModel loan) { this.loan = loan; }
     public LocalDate getDueDate() { return dueDate; }
     public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
     public BigDecimal getEmiAmount() { return emiAmount; }
