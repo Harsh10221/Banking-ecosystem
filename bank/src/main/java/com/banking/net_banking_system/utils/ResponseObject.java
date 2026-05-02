@@ -19,16 +19,7 @@ public class ResponseObject<T> {
         res.setMessage(msg);
         res.setData(data);
         return new ResponseEntity<>(res, status);
-
-//        int statusCode = code;
-//        String message = msg;
-//        T data1 = data;
-//
-//        return Map<String,Object> ;
     }
 
 
 }
-
-
-//return ResponseObject.createResponse(200, "Success", data, HttpStatus.OK);

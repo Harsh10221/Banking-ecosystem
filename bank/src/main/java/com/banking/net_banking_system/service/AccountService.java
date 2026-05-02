@@ -9,11 +9,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.banking.net_banking_system.model.AccountDetails;
-import com.banking.net_banking_system.model.User;
+import com.banking.net_banking_system.model.AccountDetailsModel;
+import com.banking.net_banking_system.model.UserModel;
 import com.banking.net_banking_system.repository.UserRepository;
 
-import java.math.BigDecimal;
 import java.util.Random;
 
 @Service
@@ -25,15 +24,13 @@ public class AccountService {
     private final BCryptPasswordEncoder passwordEncoder;
 
 
-
-    public AccountService(UserRepository userRepository,
-                          BCryptPasswordEncoder passwordEncoder) {
+    public AccountService(UserRepository userRepository,BCryptPasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional
-    public User registerNewUser(User user, String accountType) {
+    public UserModel registerNewUser(UserModel user, String accountType) {
     	
     	if (userRepository.existsByEmail(user.getEmail())) throw new RuntimeException("EXISTS_EMAIL");
         if (userRepository.existsByPhone(user.getPhone())) throw new RuntimeException("EXISTS_PHONE");
@@ -53,12 +50,12 @@ public class AccountService {
 
         // 3. Generate account details
         String accountNumber = generateAccountNumber();
-        AccountDetails account = new AccountDetails();
+        AccountDetailsModel account = new AccountDetailsModel();
         account.setAccountNumber(accountNumber);
         account.setAccountType(accountType.toUpperCase());
         account.setUser(user);
 
-        user.setAccountDetails(account); 
+        user.setAccountDetailsModel(account);
         return userRepository.save(user);
     }
 
@@ -66,10 +63,10 @@ public class AccountService {
     public <T> ResponseEntity<ResponseObject<T>> validateRecipientAccount(String accountNumber) {
 
         System.out.println("Accountno"+ accountNumber);
-        AccountDetails account = accountRepository.findByAccountNumber(accountNumber)
+        AccountDetailsModel account = accountRepository.findByAccountNumber(accountNumber)
                 .orElseThrow(() -> new RuntimeException("Account not found."));
 
-        if (account.getStatus() != AccountDetails.AccountStatus.ACTIVE) {
+        if (account.getStatus() != AccountDetailsModel.AccountStatus.ACTIVE) {
             return ResponseObject.createResponse(400,"Failed",null,HttpStatus.BAD_REQUEST);
         }
 

@@ -1,6 +1,8 @@
 package com.banking.net_banking_system.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Negative;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.Data;
 import lombok.ToString;
 
@@ -8,11 +10,12 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.hibernate.annotations.Check;
 
 @Entity
 @Data
 @Table(name = "account_details")
-public class AccountDetails {
+public class AccountDetailsModel {
 
 	public enum AccountStatus{
 		ACTIVE,BLOCKED,FROZEN
@@ -29,6 +32,7 @@ public class AccountDetails {
     private String accountType;
 
     @Column(nullable = false)
+    @Check(constraints = "balance >= 0")
     private BigDecimal balance ;
 
     @Column(nullable = false)
@@ -42,7 +46,7 @@ public class AccountDetails {
     @OneToOne
     @JoinColumn(name = "user_id", referencedColumnName = "userId")
 	@ToString.Exclude
-    private User user;
+    private UserModel user;
 
     @PrePersist
     protected void onCreate() {

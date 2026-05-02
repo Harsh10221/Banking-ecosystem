@@ -1,7 +1,7 @@
 package com.banking.net_banking_system.controller;
 
-import com.banking.net_banking_system.model.EmiSchedule;
-import com.banking.net_banking_system.model.LoanDetails;
+import com.banking.net_banking_system.model.EmiScheduleModel;
+import com.banking.net_banking_system.model.LoanDetailsModel;
 import com.banking.net_banking_system.repository.LoanRepository;
 import com.banking.net_banking_system.service.LoanService;
 
@@ -21,7 +21,7 @@ public class LoanController {
     private LoanRepository loanRepository;
 
     @PostMapping("/apply")
-    public String applyForLoan(@RequestBody LoanDetails loan) {
+    public String applyForLoan(@RequestBody LoanDetailsModel loan) {
         try {
             return loanService.processLoanApplication(loan);
         } catch (Exception e) {
@@ -30,7 +30,7 @@ public class LoanController {
     }
     
     @GetMapping("/status/{loanId}")
-    public LoanDetails getLoanStatus(@PathVariable Long loanId) {
+    public LoanDetailsModel getLoanStatus(@PathVariable Long loanId) {
         return loanRepository.findById(loanId)
                 .orElseThrow(() -> new RuntimeException("Loan not found"));
     }
@@ -46,7 +46,7 @@ public class LoanController {
     
     // Get all EMIs (Pending and Paid) for a loan
     @GetMapping("/{loanId}/emis")
-    public List<EmiSchedule> getLoanEmis(@PathVariable Long loanId) {
+    public List<EmiScheduleModel> getLoanEmis(@PathVariable Long loanId) {
         return loanService.getLoanEmiSchedule(loanId);
     }
 }

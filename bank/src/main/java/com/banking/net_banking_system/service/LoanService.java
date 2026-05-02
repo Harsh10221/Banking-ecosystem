@@ -1,9 +1,9 @@
 package com.banking.net_banking_system.service;
 
-import com.banking.net_banking_system.model.AccountDetails;
-import com.banking.net_banking_system.model.EmiSchedule;
-import com.banking.net_banking_system.model.LoanDetails;
-import com.banking.net_banking_system.model.User;
+import com.banking.net_banking_system.model.AccountDetailsModel;
+import com.banking.net_banking_system.model.EmiScheduleModel;
+import com.banking.net_banking_system.model.LoanDetailsModel;
+import com.banking.net_banking_system.model.UserModel;
 import com.banking.net_banking_system.repository.EmiScheduleRepository;
 import com.banking.net_banking_system.repository.LoanRepository;
 import com.banking.net_banking_system.repository.UserRepository;
@@ -30,14 +30,14 @@ public class LoanService {
     private UserRepository userRepository;
 
     @Transactional
-    public String processLoanApplication(LoanDetails loan) {
+    public String processLoanApplication(LoanDetailsModel loan) {
         // 0. FETCH PERSISTENT USER: Required to access AccountDetails
         if (loan.getUser() == null || loan.getUser().getId() == null) {
             return "ERROR: User ID is missing in the request.";
         }
         
         Long userId = loan.getUser().getId();
-        User fullUser = userRepository.findById(userId)
+        UserModel fullUser = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
         
         // Attach the fully loaded user to the loan
@@ -75,21 +75,21 @@ public class LoanService {
         loan.setEndDate(LocalDate.now().plusMonths(loan.getTenureMonths()));
 
         // 5. CREDIT AMOUNT TO ACCOUNT: Update user's bank balance
-        if (fullUser.getAccountDetails() != null) {
-            AccountDetails account = fullUser.getAccountDetails();
+        if (fullUser.getAccountDetailsModel() != null) {
+            AccountDetailsModel account = fullUser.getAccountDetailsModel();
             account.creditBalance(loan.getLoanAmount());
         } else {
             return "ERROR: No linked bank account found for user ID: " + userId;
         }
 
         // 6. SAVE & GENERATE SCHEDULE: Create the monthly Emi repayment list
-        LoanDetails savedLoan = loanRepository.save(loan);
+        LoanDetailsModel savedLoan = loanRepository.save(loan);
         generateEmiSchedule(savedLoan);
 
         return "APPROVED: Fund credited and EMI schedule generated.";
     }
 
-    private void calculateEmiAndRepayment(LoanDetails loan) {
+    private void calculateEmiAndRepayment(LoanDetailsModel loan) {
         // Calculation: Total Interest = Principal * Rate * (Tenure/12)
         BigDecimal interestRateDecimal = new BigDecimal(loan.getInterestRate()).divide(new BigDecimal(100));
         BigDecimal timeInYears = new BigDecimal(loan.getTenureMonths()).divide(new BigDecimal(12), 2, RoundingMode.HALF_UP);
@@ -107,12 +107,12 @@ public class LoanService {
         loan.setMonthlyEmiAmount(monthlyEmi);
     }
 
-    private void generateEmiSchedule(LoanDetails loan) {
+    private void generateEmiSchedule(LoanDetailsModel loan) {
         BigDecimal totalScheduled = BigDecimal.ZERO;
         
         // Create a row for each month in the tenure
         for (int i = 1; i <= loan.getTenureMonths(); i++) {
-            EmiSchedule emi = new EmiSchedule();
+            EmiScheduleModel emi = new EmiScheduleModel();
             emi.setLoan(loan);
             emi.setDueDate(LocalDate.now().plusMonths(i)); 
             emi.setStatus("UNPAID");
@@ -134,16 +134,16 @@ public class LoanService {
     
     @Transactional
     public String payEmi(Long emiId) {
-        EmiSchedule emi = emiScheduleRepository.findById(emiId)
+        EmiScheduleModel emi = emiScheduleRepository.findById(emiId)
                 .orElseThrow(() -> new RuntimeException("EMI not found"));
 
         if (emi.getStatus().equals("PAID")) return "EMI already paid.";
 
-        LoanDetails loan = emi.getLoan();
+        LoanDetailsModel loan = emi.getLoan();
         BigDecimal totalToPay = emi.getEmiAmount().add(emi.getPenaltyAmount());
 
         // 1. Check if user has enough balance
-        AccountDetails account = loan.getUser().getAccountDetails();
+        AccountDetailsModel account = loan.getUser().getAccountDetailsModel();
         if (account.getBalance().compareTo(totalToPay) < 0) {
             return "ERROR: Insufficient balance to pay EMI.";
         }
@@ -171,7 +171,7 @@ public class LoanService {
     }
     
     // Get EMI schedule for a particular loan
-    public List<EmiSchedule> getLoanEmiSchedule(Long loanId) {
+    public List<EmiScheduleModel> getLoanEmiSchedule(Long loanId) {
         return emiScheduleRepository.findByLoan_LoanIdOrderByDueDateAsc(loanId);
     }
 }

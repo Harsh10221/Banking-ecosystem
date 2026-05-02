@@ -1,31 +1,29 @@
 package com.banking.net_banking_system.repository;
 
-import com.banking.net_banking_system.model.Transaction;
-import com.banking.net_banking_system.model.User;
+import com.banking.net_banking_system.model.TransactionModel;
+import com.banking.net_banking_system.model.UserModel;
 
-import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
+import org.hibernate.Transaction;
+import org.hibernate.resource.transaction.spi.TransactionStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.annotation.Transactional;
 
 @Repository
-public interface TransactionRepository extends JpaRepository<Transaction, Long> {
+public interface TransactionRepository extends JpaRepository<TransactionModel, Long> {
 
-    List<Transaction> findTop5ByUserOrderByCreatedAtDesc(User user);
+    Optional<TransactionModel> findByCorrelationId(UUID correlationId);
 
-    List<Transaction> findByUserOrderByCreatedAtDesc(User user);
+    Optional<TransactionModel> findByCorrelationIdAndTransactionType(UUID correlationId,TransactionModel.TransactionType transactionType);
 
-    @Transactional
-    @Modifying
-    @Query("UPDATE Transaction t " +
-            "SET t.transactionStatus = :transactionStatus, t.errorMsg = :errorMsg "  +
-            " WHERE t.transactionStatus = PENDING AND t.user = :user AND t.destinationAccountNumber = :destinationAccountNumber AND t.destinationBank = :destinationBank AND t.amount = :amount ")
-    void updateTransactionStatus(Transaction.status transactionStatus,User user, Long destinationAccountNumber, String destinationBank, BigDecimal amount,String errorMsg);
+   boolean existsByCorrelationIdAndTransactionStatusAndTransactionType(UUID correlationId, TransactionModel.Status status, TransactionModel.TransactionType type );
+
 
 }
 

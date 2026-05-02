@@ -15,7 +15,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Entity
 @Data
 @Table(name = "users")
-public class User {
+public class UserModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -58,12 +58,12 @@ public class User {
     private LocalDateTime createdAt;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
-    private AccountDetails accountDetails;
+    private AccountDetailsModel accountDetailsModel;
     
     @JsonIgnore
     @OneToMany(mappedBy = "user")
     @OrderBy("createdAt DESC")
-    private List<LoanDetails> loans;
+    private List<LoanDetailsModel> loans;
 
     @PrePersist
     protected void onCreate() {
@@ -79,20 +79,4 @@ public class User {
 	}
 
 
-	public String getPassword() {
-		return password;
-	}
-
-	public void setPassword(String password) {
-		this.password = password;
-	}
-
-	public void setAccountType(String accountType) {
-		this.accountType = accountType;
-	}
-
-	public void setAccountDetails(AccountDetails accountDetails) {
-		this.accountDetails = accountDetails;
-	}
-    
 }

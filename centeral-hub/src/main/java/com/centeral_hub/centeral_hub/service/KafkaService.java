@@ -16,33 +16,38 @@ public class KafkaService {
     @Autowired
     private KafkaTemplate<String, String> kafkaTemplate;
 
-    private final AdminClient adminClient;
+    /// There are two threads working together, a tomcat thread and kafka IO network bound thread which only work with newtowrkcard
+    /// The tomcat thread(Main thread), reaches the kafka.send and call the kafkaIo thread and just go ahead for executing
+    /// while in bg the kafka thread waiting and collection if there are more msg coming (Micro batching) if there were 1k request
+    /// normally 1k tcp network connection but kafka thread sum all 1k into 1 single data.
 
-    public KafkaService(AdminClient adminClient) {
-        this.adminClient = adminClient;
-    }
+//    private final AdminClient adminClient;
+//
+//    public KafkaService(AdminClient adminClient) {
+//        this.adminClient = adminClient;
+//    }
 
-    AtomicInteger successCount = new AtomicInteger(0);
-    AtomicInteger errorCount = new AtomicInteger(0);
+//    AtomicInteger successCount = new AtomicInteger(0);
+//    AtomicInteger errorCount = new AtomicInteger(0);
 
     public void sendTransaction(String data) throws InterruptedException {
-        System.out.println("I am from sendtransaction" + data);
+        System.out.println("I am from send transaction" + data);
 
 
-        kafkaTemplate.send("transfer-transactions", "10", data)
+        kafkaTemplate.send("transfer-transactions", "10",data)
                 .whenComplete((result, ex) -> {
                     if (ex == null) {
                         System.out.println("Sent message offset: " + result.getRecordMetadata().offset());
-                        successCount.incrementAndGet();
+//                        successCount.incrementAndGet();
                     } else {
-                        errorCount.incrementAndGet();
+//                        errorCount.incrementAndGet();
                         System.err.println("Unable to send message due to: " + ex.getMessage());
                     }
                 });
-
-        Thread.sleep(5000);
-        System.out.println("Successes: " + successCount.get());
-        System.out.println("Errors: " + errorCount.get());
+    ///  Sleeping the main thread till then the kafka IO thread gets the resposne from the server
+//            Thread.sleep(5000);
+//        System.out.println("Successes: " + successCount.get());
+//        System.out.println("Errors: " + errorCount.get());
 
     }
 

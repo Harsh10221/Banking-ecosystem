@@ -18,6 +18,10 @@ public class TransactionModel {
         PENDING,VALIDATED, SUCCESS,FAILED,REVERSED,INITIATED;
     }
 
+    public enum MicroService{
+        INITIATED,WITHDRAW_SUCCESS, DEPOSIT_SUCCESS,DEPOSIT_FAILED,REFUND_SUCCESS;
+    }
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -55,6 +59,9 @@ public class TransactionModel {
 
     @UpdateTimestamp
     private Timestamp updatedAt;
+
+    @Enumerated(EnumType.STRING)
+    private MicroService MicroServiceStatus = MicroService.INITIATED;
 
 
 

@@ -4,6 +4,7 @@ import com.centeral_hub.centeral_hub.service.KafkaConsumer;
 import com.centeral_hub.centeral_hub.service.KafkaService;
 import com.centeral_hub.centeral_hub.service.TransactionService;
 import com.centeral_hub.centeral_hub.utils.JwtAuthentication;
+import com.centeral_hub.centeral_hub.utils.KafkaConsumerDto;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -34,37 +35,47 @@ public class TransactionController {
     @Autowired
     JwtAuthentication jwtAuthentication;
 
-    @PostMapping("/transfer")
-    public ResponseEntity<?> transferMethod(@RequestBody JsonNode payload) {
+//    @PostMapping("/transfer")
+//    public ResponseEntity<?> transferMethod(@RequestBody JsonNode payload) {
+//
+//        System.out.println("This is payload" + payload);
+//
+//        String senderAccountNo = payload.path("senderAccountNumber").asText(null);
+//        String senderBank = payload.path("senderBank").asText(null);
+//        BigDecimal amount = BigDecimal.valueOf(payload.path("amount").asLong(0));
+//        String type = payload.path("type").asText(null);
+//        String receiverAccountNumber = payload.path("receiverAccountNumber").asText(null);
+//        String receiverBank= payload.path("receiverBank").asText(null) ;
+//      String userRequestKey = payload.path("userRequestKey").asText(null);
+//
+//        Map<String,Object> tokenBody = jwtAuthentication.jwtVerification(payload.get("token"));
+//
+//
+//        if(!((boolean) tokenBody.get("isVerified"))){
+//            return ResponseEntity.badRequest().body(tokenBody.get("Error"));
+//        }
+//
+//        String bankToken = tokenBody.get("bankToken").toString();
+//
+//        System.out.println("This is token body " + tokenBody);
+//
+//        return transactionService.processInboundTransfer(senderAccountNo,senderBank,amount,type,receiverAccountNumber,receiverBank,bankToken,userRequestKey);
+//
+//    }
 
-        System.out.println("This is payload" + payload);
-
-        String senderAccountNo = payload.path("senderAccountNumber").asText(null);
-        String senderBank = payload.path("senderBank").asText(null);
-        BigDecimal amount = BigDecimal.valueOf(payload.path("amount").asLong(0));
-        String type = payload.path("type").asText(null);
-        String receiverAccountNumber = payload.path("receiverAccountNumber").asText(null);
-        String receiverBank= payload.path("receiverBank").asText(null) ;
-      String userRequestKey = payload.path("userRequestKey").asText(null);
-
-        Map<String,Object> tokenBody = jwtAuthentication.jwtVerification(payload.get("token"));
-
-
-        if(!((boolean) tokenBody.get("isVerified"))){
-            return ResponseEntity.badRequest().body(tokenBody.get("Error"));
-        }
-
-        String bankToken = tokenBody.get("bankToken").toString();
-
-        System.out.println("This is token body " + tokenBody);
-
-        return transactionService.processInboundTransfer(senderAccountNo,senderBank,amount,type,receiverAccountNumber,receiverBank,bankToken,userRequestKey);
-
-    }
 
     @PostMapping("/testkafka")
-    public void test(@RequestBody JsonNode payload) throws InterruptedException {
-        System.out.println("payload"+payload);
+///  Bcz there is a sleep of thread, When an thread is sleeping and the program is shutting down so the program sends a interrupt to the
+    /// thread to wake him up when so the program could shutdown when this all happens and the thread gets a interupt then it sends a InterruptedExection which we are handling that.
+
+
+
+            // Create a Dto to validate the data coming from the bank no trust
+    //pass the userkey/userId for the key in the .send method
+            public void test(@RequestBody KafkaConsumerDto payload) throws InterruptedException{
+
+            System.out.println("payload"+payload);
+
         String data = String.valueOf(payload);
         kafkaService.sendTransaction(data);
     }

@@ -1,44 +1,56 @@
 package com.banking.net_banking_system.service;
 
-import ch.qos.logback.core.pattern.util.RegularEscapeUtil;
-import com.banking.net_banking_system.model.AccountDetails;
-import com.banking.net_banking_system.model.Transaction;
-import com.banking.net_banking_system.model.User;
+import com.banking.net_banking_system.dtos.CentralHubTransferPayload;
+import com.banking.net_banking_system.dtos.CreditRequestDto;
+import com.banking.net_banking_system.dtos.DebitRequestDto;
+import com.banking.net_banking_system.dtos.TransferRequestDto;
+import com.banking.net_banking_system.model.TransactionModel;
+import com.banking.net_banking_system.model.TransferModel;
+import com.banking.net_banking_system.model.UserModel;
 import com.banking.net_banking_system.repository.AccountRepository;
 import com.banking.net_banking_system.repository.TransactionRepository;
+import com.banking.net_banking_system.repository.TransferRepository;
 import com.banking.net_banking_system.repository.UserRepository;
-import com.banking.net_banking_system.utils.FormatDataToTransferCentralHub;
-import com.banking.net_banking_system.utils.ResponseObject;
+
+import com.banking.net_banking_system.utils.IncomingRequestDto;
+import com.banking.net_banking_system.utils.ResponseDto;
+import com.banking.net_banking_system.utils.ResponseObj;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import lombok.extern.java.Log;
+import jakarta.annotation.PostConstruct;
+import jakarta.persistence.EntityExistsException;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.Valid;
+import jakarta.validation.Validator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchProperties;
-import org.springframework.http.HttpStatus;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 
 import javax.crypto.SecretKey;
-import javax.security.auth.login.AccountNotFoundException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
-import java.util.function.Predicate;
+import java.util.UUID;
 
-@Controller
+
+@Service
 public class TransactionService {
 
     @Autowired
-    private TransactionRepository transactionRepository;
+    private TransferRepository transferRepository;
 
     @Autowired
-    private UserRepository userRepository;
+    private Validator validator;
+
+    @Autowired
+    private TransactionRepository transactionRepository;
 
     @Autowired
     private AccountRepository accountRepository;
@@ -49,229 +61,240 @@ public class TransactionService {
     @Value("${NEXT_GEN_SECRET}")
     private String secretKey;
 
+    private SecretKey jwtKey;
+
+    @PostConstruct
+    public void init() {
+        this.jwtKey = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
+    }
+
 
     @Transactional
-    public ResponseEntity<?> depositTransaction(String accountNumber, String type, Long amount, Long userId) {
+    public ResponseEntity<ResponseDto<UUID>> depositTransaction(@Valid CreditRequestDto payload) {
 
-        if (accountNumber == null || !type.equals("Deposit") || amount == null) {
-//            return ResponseObject.createResponse(400, "Account number and amount are required or type invalid.", null, HttpStatus.BAD_REQUEST);
-             return ResponseEntity.badRequest().body("Account number or amount are required or type is invalid");
+        System.out.println("\n In Deposit payload \n" + payload);
+
+        UUID userRequestKey = UUID.randomUUID();
+
+//        2026 - 04 - 30 T00:
+//        12:50.674 + 05:30 ERROR 10496-- - [nio - 8080 - exec - 4]o.a.c.c.C.[.[.[/].[dispatcherServlet]    :
+//        Servlet.service() for servlet[dispatcherServlet] in context with path[] threw exception[ Request processing
+//        failed:
+//        org.springframework.transaction.UnexpectedRollbackException:Transaction silently rolled back because it has been
+//        marked as rollback - only]with root cause
+//
+//        org.springframework.transaction.UnexpectedRollbackException:Transaction silently rolled back because it has been
+//        marked as rollback - only
+
+        try {
+            accountRepository.findByAccountNumber(payload.receiverAccountNumber()).orElseThrow(() -> new EntityNotFoundException("Account not exist"));
+
+            TransactionModel.TransactionType transactionType = (payload.transactionType() == TransactionModel.TransactionType.COMPENSATION)
+                    ? TransactionModel.TransactionType.COMPENSATION
+                    : TransactionModel.TransactionType.CREDIT;
+
+
+            transactionRepository.findByCorrelationIdAndTransactionType(payload.correlationId(), transactionType)
+                    .ifPresent(existing -> {
+                        throw new EntityExistsException("Transaction already done");
+                    });
+
+
+            TransactionModel newTransaction = new TransactionModel();
+            System.out.println("Transaction type from payload" + payload.transactionType());
+
+
+            newTransaction.setTransactionType(transactionType);
+
+            newTransaction.setCorrelationId(payload.correlationId());
+            newTransaction.setAmount(payload.amount());
+            newTransaction.setSender(payload.senderAccountNumber());
+            newTransaction.setReceiver(payload.receiverAccountNumber());
+            newTransaction.setSenderBank(payload.senderBank());
+
+            accountRepository.creditAmount(payload.receiverAccountNumber(), payload.amount());
+            transactionRepository.save(newTransaction);
+
+            System.out.println("Deposit Transaction done");
+
+            return ResponseObj.success(200, "Deposit success", userRequestKey);
+        } catch (EntityNotFoundException ee) {
+            return ResponseObj.error(400, "Account not exist");
+
+        } catch (EntityExistsException e) {
+            return ResponseObj.success(200, "Credit transaction already succeed", null);
+
+        } catch (Exception e) {
+            return ResponseObj.error(400, e.getMessage());
         }
 
-        if (amount < 1) {
-//            return ResponseObject.createResponse(400, "Deposit amount must be at least 1.", null, HttpStatus.BAD_REQUEST);
-            return ResponseEntity.badRequest().body("Deposit amount must be at least 1");
-        }
 
-        Transaction newTransaction = new Transaction();
-
-        //// Might not needed if not needed remove this
-        User userObj = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id:" + userId));
-
-        if (!userObj.getAccountDetails().getAccountNumber().equals(accountNumber)) {
-//            return ResponseObject.createResponse(404, "Account and userId not match", null, HttpStatus.NOT_FOUND);
-            return ResponseEntity.badRequest().body("Account and userId not matched");
-        }
-
-        newTransaction.setUser(userObj);
-        newTransaction.setTransactionType(Transaction.Type.CREDIT);
-        newTransaction.setTransactionStatus(Transaction.status.APPROVED);
-        newTransaction.setAmount(BigDecimal.valueOf(amount));
-
-        AccountDetails accountDetails = userObj.getAccountDetails();
-
-        accountDetails.setBalance(accountDetails.getBalance().add(BigDecimal.valueOf(amount)));
-        Transaction result = transactionRepository.save(newTransaction);
+        /// Previously there was a error(transaction_type_check) in .save() when there is that type of exception the spring marks as rolled-back = true, but the commit only runs at the very end of the method so the java/spring confuses
+//        Here is the exact sequence of why the UnexpectedRollbackException happens:
+//
+//        depositTransaction starts Transaction A.
+//
+//        findByAccountNumber starts and finishes Transaction B completely independently. (All good here).
+//
+//        creditAmount joins Transaction A.
+//
+//        save joins Transaction A.
+//
+//        save hits the database constraint error (transaction_transaction_type_check) and throws a database exception.
+//
+//                Because save is sharing Transaction A with the parent, Spring intercepts that exception and permanently marks Transaction A as rollback-only. It is now poisoned.
+//
+//                Your Java code catches the exception with a try-catch block and swallows it.
+//
+//        Because the exception was swallowed, your depositTransaction method reaches the end successfully and tells Spring: "I'm done, please commit Transaction A!"
+//
+//        Spring tries to commit, sees the rollback-only flag left behind by the save method, and throws the UnexpectedRollbackException.
 
 
-//        return ResponseObject.createResponse(400, "Deposit failed", null, HttpStatus.BAD_REQUEST);
-//        return ResponseObject.createResponse(200, "Deposit success", null, HttpStatus.OK);
-        return ResponseEntity.ok().body("Deposit success");
     }
 
     @Transactional
-//    public ResponseEntity<ResponseObject<String>> withdrawTransaction(String accountNumber, String type, Long amount, Long userId) {
-    public ResponseEntity<?> withdrawTransaction(String accountNumber, String type, Long amount, Long userId) {
-//        System.out.println("I am from withdraw");
-        Transaction newTransaction = new Transaction();
+    public ResponseEntity<ResponseDto<Void>> withdrawTransaction(@Valid DebitRequestDto payload) {
 
-        if (accountNumber == null || !type.equals("Withdraw") || amount == null) {
-//            return "Account No or amount are required";
-//            return ResponseObject.createResponse(404, "Account No or Amount is required", null, HttpStatus.NOT_FOUND);
-            return ResponseEntity.badRequest().body( "Account No or Amount is required");
-//            .( "Account No or Amount is required");
+        try {
+            System.out.println("\n In withdraw payload \n" + payload);
+
+            TransferModel transferModel = transferRepository.findByCorrelationId(payload.correlationId()).orElseThrow(() -> new EntityNotFoundException("Transfer entity not fount"));
+
+            boolean isExist = transactionRepository.existsByCorrelationIdAndTransactionStatusAndTransactionType(payload.correlationId(), TransactionModel.Status.SUCCESS, TransactionModel.TransactionType.DEBIT);
+            if (isExist) throw new EntityExistsException("Transaction already exist");
+
+            TransactionModel newTransaction = new TransactionModel();
+
+            newTransaction.setTransactionType(TransactionModel.TransactionType.DEBIT);
+            newTransaction.setCorrelationId(payload.correlationId());
+            newTransaction.setAmount(payload.amount());
+            newTransaction.setSender(payload.accountNumber());
+            newTransaction.setReceiver(transferModel.getDestinationAccountNumber());
+            newTransaction.setTransactionStatus(TransactionModel.Status.SUCCESS);
+
+            transactionRepository.save(newTransaction);
+
+            accountRepository.debitBalance(payload.accountNumber(), payload.amount());
+
+            return ResponseObj.success(200, "Withdraw success", null);
+        } catch (EntityExistsException ee) {
+            return ResponseObj.success(200, "Withdraw already processed", null);
+        } catch (RuntimeException e) {
+            return ResponseObj.error(400, e.getMessage());
         }
 
-        if (amount < 1) {
-//            return "Amount should be greater than 0";
-//            ResponseObject.createResponse(400, "Minimum amount should be 1 ", null, HttpStatus.BAD_REQUEST);
-           return ResponseEntity.badRequest().body("Minimum amount should be 1");
-
-        }
-
-        //// Might not need this remove this if not necessaray
-        User userObj = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id:" + userId));
-
-
-        if (!userObj.getAccountDetails().getAccountNumber().equals(accountNumber)) {
-//            System.out.println("I am inside no match");
-//            ResponseObject.createResponse(400, "Account Number and User Id are not matched", null, HttpStatus.BAD_REQUEST);
-            return ResponseEntity.badRequest().body("Account number and User Id are not matched");
-
-        }
-
-
-//        When the balance is low from the required amount the money still depositing in the reciver
-//        Issue is becasue of the exception handling the return as string response is considering true
-        if (userObj.getAccountDetails().getBalance().compareTo(BigDecimal.valueOf(amount)) < 0) {
-            System.out.println("I am inside low balance");
-//            return ResponseObject.createResponse(400, "Balance is low for transaction ", null, HttpStatus.BAD_REQUEST);
-            return ResponseEntity.badRequest().body("Balance is low for transaction ");
-        }
-
-
-        newTransaction.setUser(userObj);
-        newTransaction.setAmount(BigDecimal.valueOf(amount));
-        newTransaction.setType(Transaction.Type.DEBIT);
-        newTransaction.setTransactionStatus(Transaction.status.APPROVED);
-
-
-//        AccountDetails accountDetails = userObj.getAccountDetails();
-
-        int resultDb = accountRepository.substractBalance(accountNumber, amount);
-        System.out.println("This is result Db" + resultDb);
-        Transaction result = transactionRepository.save(newTransaction);
-
-//        return ResponseObject.createResponse(400, "Withdraw Failed", null, HttpStatus.BAD_REQUEST);
-//        return ResponseObject.createResponse(200, "Withdraw success", null, HttpStatus.OK);
-        return  ResponseEntity.ok().body("Success");
     }
 
-    public ResponseEntity<?> transferTransaction(String senderAccountNumber, BigDecimal amount, String type, Long receiverAccountNumber, String receiverBank, Long userId) {
+    public ResponseEntity<?> transferTransaction(@Valid TransferRequestDto transferRequestDto) {
 
-        if (senderAccountNumber == null || amount.compareTo(BigDecimal.ONE) <= 0 || receiverAccountNumber == null || !type.equals("TRANSFER") || receiverBank == null || userId == null) {
-            var responseBody = Map.of(
-                    "Error", "Fields are required"
-            );
-            return ResponseEntity.badRequest().body(responseBody);
-        }
-        /// Send a detailed msg body and then use hash map in the centeral hub and decode that and use.
+        UUID userRequestKey = UUID.randomUUID();
+
+
         try {
 
-            if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-                return ResponseEntity.badRequest().body("Error: amount should be greater than 0");
-            }
+            boolean isEligible = accountRepository.existsByAccountNumberAndBalanceGreaterThanEqual(transferRequestDto.senderAccountNumber(), transferRequestDto.amount());
 
-            User user = userRepository.findById(userId).orElseThrow(
-                    () -> new RuntimeException("User not found with id: " + userId)
-            );
 
-            BigDecimal balance = user.getAccountDetails().getBalance();
+            //The get can be null
+            UserModel user = accountRepository.findByAccountNumber(transferRequestDto.senderAccountNumber()).get().getUser();
 
-            if (balance.compareTo(amount) < 0) {
-                return ResponseEntity.badRequest().body("Error: balance is too low for this transaction");
-            }
-
-            SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
+            if (!isEligible) throw new ArithmeticException("Balance is too low for this transaction");
 
             String bankToken = Jwts.builder()
                     .subject("NEXT_GEN")
-                    .signWith(key)
+                    .signWith(jwtKey)
                     .compact();
 
-            var tokenBody = Map.of(
-                    "Issuer", "NEXT_GEN",
-                    "token", bankToken
-            );
+            TransferModel transactionModel = new TransferModel();
 
-            var requestBody = Map.of(
-                    "senderAccountNumber", senderAccountNumber,
-                    "amount", amount,
-                    "type", "Debit",
-                    "receiverAccountNumber", receiverAccountNumber,
-                    "receiverBank", receiverBank,
-                    "token", tokenBody,
-                    "userRequestKey", "123456"  //Remove this the token and userReqkey
-            );
+            transactionModel.setUser(user);
+            transactionModel.setTransferStatus(TransferModel.status.PENDING);
+            transactionModel.setAmount(transferRequestDto.amount());
+            transactionModel.setDestinationAccountNumber(transferRequestDto.receiverAccountNumber());
+            transactionModel.setDestinationBank(transferRequestDto.receiverBank());
+            transactionModel.setSourceBank("NEXT_GEN");
+            transactionModel.setSourceAccountNumber(transferRequestDto.senderAccountNumber());
+            transactionModel.setUserRequestKey(userRequestKey);
 
-            ResponseEntity<JsonNode> response = restClient.post()
+            System.out.println("This is transaction Obj" + transactionModel);
+            transferRepository.save(transactionModel);
+
+            System.out.println("Before token");
+            CentralHubTransferPayload.TokenDetails token = new CentralHubTransferPayload.TokenDetails("NEXT_GEN", bankToken);
+
+
+            CentralHubTransferPayload payload = new CentralHubTransferPayload(
+                    transferRequestDto.senderAccountNumber(),
+                    transferRequestDto.amount(),
+                    transferRequestDto.receiverAccountNumber(),
+                    transferRequestDto.receiverBank(),
+                    userRequestKey,
+                    token
+
+            );
+            System.out.println("After token");
+
+            ResponseEntity<IncomingRequestDto<JsonNode>> response = restClient.post()
                     .uri("/api/v1/transaction/testkafka")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(requestBody)
+                    .body(payload)
                     .retrieve()
-                    .toEntity(JsonNode.class);
-            int statusCode = response.getStatusCode().value();
+                    .toEntity(new ParameterizedTypeReference<IncomingRequestDto<JsonNode>>() {
+                    });
 
-            JsonNode body = response.getBody();
+            System.out.println("After rest api " + response);
 
-            if (statusCode != 200) {
-                return ResponseEntity.badRequest().body(Map.of("Msg", "Central hub api", "Error", body.get("message")));
-            }
+            //May not work as expected but should be check it could be work
+            UUID correlationId = response.getBody().correlationId();
+            transactionModel.setCorrelationId(correlationId);
+            transferRepository.save(transactionModel);
 
-            Transaction transaction = new Transaction();
 
-            transaction.setUser(user);
-            transaction.setTransactionType(Transaction.Type.TRANSFER);
-            transaction.setTransactionStatus(Transaction.status.PENDING);
-            transaction.setAmount(amount);
-            transaction.setDestinationAccountNumber(receiverAccountNumber);
-            transaction.setDestinationBank(receiverBank);
+            System.out.println("End response  " + response);
 
-            transaction.setSourceBank("NEXT_GEN");
-            transaction.setSourceAccountNumber(Long.parseLong(senderAccountNumber));
+            return ResponseObj.success(200, "Success", null);
 
-            System.out.println("This is transaction Obj" + transaction);
+        } catch (RestClientResponseException | EntityExistsException | EntityNotFoundException e) {
+            transferRepository.updateTransactionStatus(TransferModel.status.REJECTED, e.getMessage(), userRequestKey);
+            return ResponseObj.error(401, e.getMessage());
 
-            transactionRepository.save(transaction);
-
-            System.out.println("Response " + response);
-
-            return ResponseEntity.ok().body(Map.of("Msg", "Success"));
+        } catch (ArithmeticException e) {
+            return ResponseObj.error(402, e.getMessage());
         } catch (RuntimeException e) {
-            System.out.println("I am here mate" + e);
-            return ResponseEntity.badRequest().body(e.getMessage());
+            transferRepository.updateTransactionStatus(TransferModel.status.REJECTED, e.getMessage(), userRequestKey);
+            return ResponseObj.error(500, e.getMessage());
+
         }
     }
 
 
-    public ResponseEntity<?> transactionWebhook(Long senderAccountNumber, BigDecimal amount, Long destinationAccountNumber, String destinationBank, String transactionStatus, String errorMsg) {
-
-        Transaction.status transactionStatusChangeTo = Transaction.status.REJECTED;
-
-        if (transactionStatus.equalsIgnoreCase("True")) {
-            transactionStatusChangeTo = Transaction.status.APPROVED;
-        }
-
-        try {
-
-            User user = userRepository.findByAccountDetailsAccountNumber(String.valueOf(senderAccountNumber))
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-
-            transactionRepository.updateTransactionStatus(transactionStatusChangeTo, user, destinationAccountNumber, destinationBank, amount, errorMsg);
-
-
-            System.out.println("I am here mate in webhook try block ");
-            return ResponseEntity.ok().body(Map.of( "suatus","success"));
-        } catch (RuntimeException e) {
-            System.out.println("I am here mate in webhook Catch block ");
-            return ResponseEntity.badRequest().body(Map.of("Error",e.getMessage()));
-
-        }
-
-
-    }
+//    public ResponseEntity<?> transactionWebhook(Long senderAccountNumber, BigDecimal amount, Long destinationAccountNumber, String destinationBank, String transactionStatus, String errorMsg) {
+//
+//        Transaction.status transactionStatusChangeTo = Transaction.status.REJECTED;
+//
+//        if (transactionStatus.equalsIgnoreCase("True")) {
+//            transactionStatusChangeTo = Transaction.status.APPROVED;
+//        }
+//
+//        try {
+//
+//            User user = userRepository.findByAccountDetailsAccountNumber(String.valueOf(senderAccountNumber))
+//                    .orElseThrow(() -> new RuntimeException("User not found"));
+//
+//            transactionRepository.updateTransactionStatus();
+//
+//
+//            System.out.println("I am here mate in webhook try block ");
+//            return ResponseEntity.ok().body(Map.of("suatus", "success"));
+//        } catch (RuntimeException e) {
+//            System.out.println("I am here mate in webhook Catch block ");
+//            return ResponseEntity.badRequest().body(Map.of("Error", e.getMessage()));
+//
+//        }
+//
+//
+//    }
 
 }
 
-
-//public enum SettlementStatus {
-//    SUCCESS,
-//    REJECTED,
-//    FAILED_TECHNICAL
-//}
-//
-//@Column(nullable = false)
-//@Enumerated(EnumType.STRING)
-//private SettlementStatus settlementStatus;
