@@ -1,4 +1,14 @@
 package com.centeral_hub.centeral_hub.dtos;
 
-public class WithdrawResponseDtoConsumer {
+import java.util.UUID;
+
+public record WithdrawResponseDtoConsumer<T>(
+
+        String message,
+        UUID correlationId,
+        T data
+
+) {
 }
+
+

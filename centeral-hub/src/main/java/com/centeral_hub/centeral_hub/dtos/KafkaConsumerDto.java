@@ -1,4 +1,4 @@
-package com.centeral_hub.centeral_hub.utils;
+package com.centeral_hub.centeral_hub.dtos;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;

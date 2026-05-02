@@ -15,11 +15,7 @@ import java.util.UUID;
 public class TransactionModel {
 
     public enum Status{
-        PENDING,VALIDATED, SUCCESS,FAILED,REVERSED,INITIATED;
-    }
-
-    public enum MicroService{
-        INITIATED,WITHDRAW_SUCCESS, DEPOSIT_SUCCESS,DEPOSIT_FAILED,REFUND_SUCCESS;
+        INITIATED,WITHDRAW_SUCCESS,WITHDRAW_FAILED, DEPOSIT_SUCCESS,DEPOSIT_FAILED,REFUND_SUCCESS,REFUND_FAILED;
     }
 
 
@@ -60,9 +56,8 @@ public class TransactionModel {
     @UpdateTimestamp
     private Timestamp updatedAt;
 
-    @Enumerated(EnumType.STRING)
-    private MicroService MicroServiceStatus = MicroService.INITIATED;
-
 
 
 }
+
+

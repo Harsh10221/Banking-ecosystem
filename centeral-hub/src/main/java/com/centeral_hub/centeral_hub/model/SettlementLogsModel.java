@@ -30,10 +30,8 @@ public class SettlementLogsModel {
     private Direction direction;
 
     @Column(nullable = false)
-    private String responseCode;
+    private int responseCode;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "raw_payload",columnDefinition="jsonb")
     private String rawPayload;
 
     private Integer retryCount;

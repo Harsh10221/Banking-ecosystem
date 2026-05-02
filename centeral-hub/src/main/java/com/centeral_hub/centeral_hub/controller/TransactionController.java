@@ -1,11 +1,9 @@
 package com.centeral_hub.centeral_hub.controller;
 
-import com.centeral_hub.centeral_hub.service.KafkaConsumer;
 import com.centeral_hub.centeral_hub.service.KafkaService;
-import com.centeral_hub.centeral_hub.service.TransactionService;
-import com.centeral_hub.centeral_hub.utils.JwtAuthentication;
-import com.centeral_hub.centeral_hub.utils.KafkaConsumerDto;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.centeral_hub.centeral_hub.dtos.KafkaConsumerDto;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,83 +11,36 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.math.BigDecimal;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/transaction")
 public class TransactionController {
 
     @Autowired
-    TransactionService transactionService;
-
-    @Autowired
     KafkaService kafkaService;
 
-    @Autowired
-    KafkaConsumer kafkaConsumer;
-
-//    @Autowired
-//    KafkaProducer kafkaProducer;
-
-    @Autowired
-    JwtAuthentication jwtAuthentication;
-
-//    @PostMapping("/transfer")
-//    public ResponseEntity<?> transferMethod(@RequestBody JsonNode payload) {
-//
-//        System.out.println("This is payload" + payload);
-//
-//        String senderAccountNo = payload.path("senderAccountNumber").asText(null);
-//        String senderBank = payload.path("senderBank").asText(null);
-//        BigDecimal amount = BigDecimal.valueOf(payload.path("amount").asLong(0));
-//        String type = payload.path("type").asText(null);
-//        String receiverAccountNumber = payload.path("receiverAccountNumber").asText(null);
-//        String receiverBank= payload.path("receiverBank").asText(null) ;
-//      String userRequestKey = payload.path("userRequestKey").asText(null);
-//
-//        Map<String,Object> tokenBody = jwtAuthentication.jwtVerification(payload.get("token"));
-//
-//
-//        if(!((boolean) tokenBody.get("isVerified"))){
-//            return ResponseEntity.badRequest().body(tokenBody.get("Error"));
-//        }
-//
-//        String bankToken = tokenBody.get("bankToken").toString();
-//
-//        System.out.println("This is token body " + tokenBody);
-//
-//        return transactionService.processInboundTransfer(senderAccountNo,senderBank,amount,type,receiverAccountNumber,receiverBank,bankToken,userRequestKey);
-//
-//    }
-
+    public record ResponseDto(
+            UUID correlationId
+    ){}
 
     @PostMapping("/testkafka")
-///  Bcz there is a sleep of thread, When an thread is sleeping and the program is shutting down so the program sends a interrupt to the
-    /// thread to wake him up when so the program could shutdown when this all happens and the thread gets a interupt then it sends a InterruptedExection which we are handling that.
+    public ResponseEntity<ResponseDto> test(@RequestBody @Valid KafkaConsumerDto payload) throws InterruptedException, JsonProcessingException {
+//    public ResponseEntity<Map<String, UUID>> test(@RequestBody @Valid KafkaConsumerDto payload) throws InterruptedException, JsonProcessingException {
 
+        UUID correlationId = UUID.randomUUID();
+        System.out.println("\n Request received in transaction controller \n " + payload);
+        payload.setCorrelationId(correlationId);
 
+        kafkaService.sendTransactionToExecuteWithdraw(payload);
 
-            // Create a Dto to validate the data coming from the bank no trust
-    //pass the userkey/userId for the key in the .send method
-            public void test(@RequestBody KafkaConsumerDto payload) throws InterruptedException{
+//        Map<String,UUID> map = Map.of("CorrelationId",correlationId);
 
-            System.out.println("payload"+payload);
+        ResponseDto obj = new ResponseDto(correlationId);
 
-        String data = String.valueOf(payload);
-        kafkaService.sendTransaction(data);
+        return ResponseEntity.status(202).body(obj);
     }
-
-    @PostMapping("/commit")
-    public void commit(){
-        kafkaConsumer.commitNow();
-    }
-
-//    @PostMapping("/send")
-//    public String postTransaction(@RequestBody String payload){
-//        kafkaProducer.sendTransaction(payload);
-//        return "Transaction sent to Kafka!";
-//    }
 
 
 }

@@ -25,9 +25,6 @@ public class LegderModel {
     private UUID correlationId;
 
     @Column(nullable = false)
-    private String transactionId;
-
-    @Column(nullable = false)
     private String bank;
 
     @Column(nullable = false)
