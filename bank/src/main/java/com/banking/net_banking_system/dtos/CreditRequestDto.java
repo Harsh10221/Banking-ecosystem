@@ -12,7 +12,7 @@ public record CreditRequestDto(
         @NotBlank(message = "Sender account number cannot be blank or null")
         String senderAccountNumber,
 
-        @NotBlank(message = "Amount cannot be blank")
+        @NotNull(message = "Amount cannot be blank")
         @DecimalMin(value = "1.00", inclusive = false, message = "Amount must be greater than 1")
         BigDecimal amount,
 

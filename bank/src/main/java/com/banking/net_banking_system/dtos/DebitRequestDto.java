@@ -16,7 +16,7 @@ public record DebitRequestDto(
         @DecimalMin(value = "1",message = "Minimum amount should be greater that 1")
         BigDecimal amount,
 
-        @NotBlank(message = "correlation Id is required")
+        @NotNull(message = "correlation Id is required")
         UUID correlationId
 ) {
 }

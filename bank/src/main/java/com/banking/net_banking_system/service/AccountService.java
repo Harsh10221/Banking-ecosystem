@@ -76,10 +76,10 @@ public class AccountService {
     }
     
     public String getAccountHolderName(String accountNumber) {
-        AccountDetails account = accountRepository.findByAccountNumber(accountNumber)
+        AccountDetailsModel account = accountRepository.findByAccountNumber(accountNumber)
                 .orElseThrow(() -> new RuntimeException("Account does not exist"));
 
-        if (account.getStatus() != AccountDetails.AccountStatus.ACTIVE) {
+        if (account.getStatus() != AccountDetailsModel.AccountStatus.ACTIVE) {
             throw new RuntimeException("Account is inactive");
         }
         return account.getUser().getFullName();
