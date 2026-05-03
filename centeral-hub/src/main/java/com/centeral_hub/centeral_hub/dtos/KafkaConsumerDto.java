@@ -29,7 +29,7 @@ public class KafkaConsumerDto {
         @NotBlank(message = "Receiver bank required")
         private String receiverBank;
 
-        @NotBlank(message = "User request key required")
+        @NotNull(message = "User request key required")
         private UUID userRequestKey;
 
         private UUID correlationId;
