@@ -1,40 +1,62 @@
 package com.centeral_hub.centeral_hub.utils;
 
 import com.centeral_hub.centeral_hub.dtos.KafkaConsumerDto;
+import com.centeral_hub.centeral_hub.model.BankPartners;
+import com.centeral_hub.centeral_hub.repository.BankPartnersRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 
 @Service
 public class JwtAuthentication {
 
-    @Value("${next_gen_bank_secret}")
-    private String secretKeyOfNextBank;
+    @Autowired
+    ObjectMapper objectMapper;
 
-    public String  jwtVerification(KafkaConsumerDto.TokenDetails token) {
+
+    public String  jwtVerification(String key,String token) throws NoSuchAlgorithmException, InvalidKeySpecException, RuntimeException, JsonProcessingException {
+
+        System.out.println("This is token from jwt " + token);
+
+            String publicKeyContent = key
+                    .replaceAll("\\n", "")
+                    .replace("-----BEGIN PUBLIC KEY-----", "")
+                    .replace("-----END PUBLIC KEY-----", "");
+
+            byte[] keyBytes = Base64.getDecoder().decode(publicKeyContent);
+            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(keyBytes);
+            PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(keySpec);
+
 
         System.out.println("Jwt verification " +token);
+        System.out.println("Public key" +publicKeyContent);
 
-        System.out.println("issuer" + token.getIssuer());
-        System.out.println("bank token" + token.getToken());
-
-
-        SecretKey key = Keys.hmacShaKeyFor(secretKeyOfNextBank.getBytes(StandardCharsets.UTF_8));
-
-//        try {
             Claims claims = Jwts.parser()
-                    .verifyWith(key)
+                    .verifyWith(publicKey)
                     .build()
-                    .parseSignedClaims(token.getToken())
+                    .parseSignedClaims(token)
                     .getPayload();
 
 
-        return claims.getSubject();
+        System.out.println(claims);
+
+        return objectMapper.writeValueAsString(claims);
 
     }
 

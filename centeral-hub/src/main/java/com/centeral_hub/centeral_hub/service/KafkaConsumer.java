@@ -35,6 +35,8 @@ import java.util.Map;
 
 import java.util.UUID;
 
+import static com.centeral_hub.centeral_hub.service.BankRoutingService.bankUrlMap;
+
 
 @Slf4j
 @Service
@@ -71,10 +73,6 @@ public class KafkaConsumer {
     /// one to one relationship so each thread is only talking one msg and work on it so its impossible to occur that situation
 
 
-    /// Least priotiry  Bank Transfer Status is pending when the transaction is succeed{create a corn job or a thread which will ask for status of the transaction}
-    ///
-    /// Then web, 2 bank to seee the working
-
     @KafkaListener(topics = "execute-withdraw")
 //        public void executeWithdrawal(ConsumerRecord<String, String> record, Acknowledgment ack, @Header(KafkaHeaders.RECEIVED_PARTITION) int partition) {
     public void executeWithdrawal(@Payload @Valid KafkaConsumerDto data, Acknowledgment ack, @Header(KafkaHeaders.RECEIVED_PARTITION) int partition) {
@@ -86,14 +84,9 @@ public class KafkaConsumer {
 
         try {
 
-//            KafkaConsumerDto data = mapper.readValue(record.value(), KafkaConsumerDto.class);
-            String bankToken = jwtAuthentication.jwtVerification(data.getToken());
-
-            //UserKey should be sent by the bank only
             WithdrawDataDtoConsumer payload = new WithdrawDataDtoConsumer(data.getSenderAccountNumber(), "DEBIT", data.getAmount(), data.getCorrelationId());
 
-
-            transactionModel.setSenderBank(bankToken);
+            transactionModel.setSenderBank(data.getSenderBank());
             transactionModel.setSenderAccountNumber(data.getSenderAccountNumber());
             transactionModel.setReceiverBank(data.getReceiverBank());
             transactionModel.setReceiverAccountNumber(data.getReceiverAccountNumber());
@@ -102,12 +95,14 @@ public class KafkaConsumer {
 
 
             settlementLogsModel1.setCorrelationId(data.getCorrelationId());
-            settlementLogsModel1.setBankServiceName(bankToken);
+            settlementLogsModel1.setBankServiceName(data.getSenderBank());
             settlementLogsModel1.setDirection(SettlementLogsModel.Direction.OUTBOUND);
 
+//            bankUrlMap()
+           String bankUrl =  bankUrlMap.get(data.getSenderBank());
 
             ResponseEntity<WithdrawResponseDtoConsumer<JsonNode>> responseObj = restClient.post()
-                    .uri("/api/transaction/withdraw")
+                    .uri("{bankUrl}/api/transaction/withdraw",bankUrl)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(payload)
                     .retrieve()
@@ -139,7 +134,7 @@ public class KafkaConsumer {
                 debit.setCorrelationId(data.getCorrelationId());
                 debit.setTransactionType(LegderModel.Transactiontype.DEBIT);
                 debit.setAmount(data.getAmount());
-                debit.setBank(bankToken);
+                debit.setBank(data.getSenderBank());
                 debit.setDescription("Being transfer to " + data.getReceiverBank() + " bank");
 
 
@@ -158,8 +153,9 @@ public class KafkaConsumer {
             System.out.println("\n Processing Done on thread withdraw \n ");
 
         } catch (JwtException e) {
+            String bankUrl =  bankUrlMap.get(data.getSenderBank());
             restClient.post()
-                    .uri("/api/transaction/webhook/transfer")
+                    .uri("{bankUrl}/api/transaction/webhook/transfer",bankUrl)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(Map.of("Jwt", "Invalid token, authorization failed"))
                     .retrieve()
@@ -168,6 +164,8 @@ public class KafkaConsumer {
                     .body(JsonNode.class);
 
             ack.acknowledge();
+            log.error("Error occur ", e);
+
 
         } catch (RestClientResponseException | JsonProcessingException e) {
 
@@ -195,7 +193,9 @@ public class KafkaConsumer {
 
             });
             ack.acknowledge();
-            System.out.println("Failed mate" + e.getMessage());
+//            System.out.println("Failed mate" + e.getMessage());
+            log.error("Error occur ", e);
+
 
 
         } catch (Exception e) {
@@ -211,19 +211,18 @@ public class KafkaConsumer {
 
         SettlementLogsModel settlementLogsModel = new SettlementLogsModel();
 
-//        KafkaConsumerDto depositMsg = null;
-
         try {
-//            depositMsg = mapper.readValue(record.value(), KafkaConsumerDto.class);
 
-            DepositRequestBodyConsumerDto payload = new DepositRequestBodyConsumerDto(depositMsg.getSenderAccountNumber(), depositMsg.getAmount(), depositMsg.getReceiverAccountNumber(), depositMsg.getToken().getIssuer(), depositMsg.getCorrelationId());
+            DepositRequestBodyConsumerDto payload = new DepositRequestBodyConsumerDto(depositMsg.getSenderAccountNumber(), depositMsg.getAmount(), depositMsg.getReceiverAccountNumber(), depositMsg.getSenderBank(), depositMsg.getCorrelationId());
 
             settlementLogsModel.setCorrelationId(depositMsg.getCorrelationId());
             settlementLogsModel.setBankServiceName(depositMsg.getReceiverBank());
             settlementLogsModel.setDirection(SettlementLogsModel.Direction.OUTBOUND);
 
+            String bankUrl =  bankUrlMap.get(depositMsg.getReceiverBank());
+
             ResponseEntity<DepositResponseConsumerDto<String>> responseObj = restClient.post()
-                    .uri("/api/transaction/deposit")
+                    .uri("{bankUrl}/api/transaction/deposit",bankUrl)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(payload)
                     .retrieve()
@@ -260,7 +259,7 @@ public class KafkaConsumer {
                 credit.setTransactionType(LegderModel.Transactiontype.CREDIT);
                 credit.setAmount(finalDepositMsg.getAmount());
                 credit.setBank(finalDepositMsg.getReceiverBank());
-                credit.setDescription("Being received from " + finalDepositMsg.getToken().getIssuer() + " bank");
+                credit.setDescription("Being received from " + finalDepositMsg.getSenderBank() + " bank");
                 credit.setDescription("Being received from " + "Next_BANK" + " bank");
 
                 settlementRepository.save(settlementLogsModel);
@@ -300,6 +299,7 @@ public class KafkaConsumer {
                 kafkaService.sendTransactionToExecuteCompensation(depositMsg);
             } catch (JsonProcessingException ex) {
                 transactionRepository.updateStatus(TransactionModel.Status.DEPOSIT_FAILED, depositMsg.getCorrelationId());
+                log.error("Error occur ", e);
             }
             ack.acknowledge();
 
@@ -322,10 +322,12 @@ public class KafkaConsumer {
 
 //            KafkaConsumerDto msgData = mapper.readValue(record.value(), KafkaConsumerDto.class);
 
-            CompensationRequestBody payload = new CompensationRequestBody(msgData.getSenderAccountNumber(), msgData.getSenderAccountNumber(), "COMPENSATION", msgData.getToken().getIssuer(), msgData.getAmount(), msgData.getCorrelationId());
+            CompensationRequestBody payload = new CompensationRequestBody(msgData.getSenderAccountNumber(), msgData.getSenderAccountNumber(), "COMPENSATION", msgData.getSenderBank(), msgData.getAmount(), msgData.getCorrelationId());
+
+            String bankUrl =  bankUrlMap.get(msgData.getSenderBank());
 
             ResponseEntity<DepositResponseConsumerDto<JsonNode>> responseObj = restClient.post()
-                    .uri("/api/transaction/deposit")
+                    .uri("{bankUrl}/api/transaction/deposit",bankUrl)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(payload)
                     .retrieve()
@@ -342,7 +344,7 @@ public class KafkaConsumer {
                 }
             }
             final String rawPayloadFinal = rawPayload;
-            ;
+
             transactionTemplate.execute(status -> {
 
                 transactionRepository.updateStatus(TransactionModel.Status.REFUND_SUCCESS, msgData.getCorrelationId());
@@ -363,7 +365,7 @@ public class KafkaConsumer {
                 credit.setCorrelationId(msgData.getCorrelationId());
                 credit.setTransactionType(LegderModel.Transactiontype.CREDIT);
                 credit.setAmount(msgData.getAmount());
-                credit.setBank(msgData.getToken().getIssuer());
+                credit.setBank(msgData.getSenderBank());
                 credit.setDescription("Being refunded ");
 
                 settlementRepository.save(settlementLogsModel);
@@ -394,6 +396,7 @@ public class KafkaConsumer {
 
             });
             ack.acknowledge();
+            log.error("Error occur ", e);
 
         } catch (Exception e) {
 //            throw new RuntimeException(e);
