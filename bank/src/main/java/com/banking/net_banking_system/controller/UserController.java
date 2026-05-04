@@ -23,7 +23,6 @@ public class UserController {
     private AuthService authService;
 
     @PostMapping("/login")
-
     public ResponseEntity<?> login(@RequestBody Map<String, String> payload, HttpServletResponse response) {
        try{
         System.out.println(payload);
@@ -49,7 +48,7 @@ public class UserController {
         Cookie cookie = new Cookie("accessToken", null);
         cookie.setPath("/");
         cookie.setHttpOnly(true);
-        cookie.setMaxAge(0); // Delete the cookie
+        cookie.setMaxAge(0);
         response.addCookie(cookie);
         return "redirect:/login";
     }

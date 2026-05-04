@@ -10,33 +10,27 @@ import com.banking.net_banking_system.model.UserModel;
 import com.banking.net_banking_system.repository.AccountRepository;
 import com.banking.net_banking_system.repository.TransactionRepository;
 import com.banking.net_banking_system.repository.TransferRepository;
-import com.banking.net_banking_system.repository.UserRepository;
 
+import com.banking.net_banking_system.utils.GetPrivateKey;
 import com.banking.net_banking_system.utils.IncomingRequestDto;
 import com.banking.net_banking_system.utils.ResponseDto;
 import com.banking.net_banking_system.utils.ResponseObj;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import jakarta.validation.Validator;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
-import javax.crypto.SecretKey;
-import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
+import java.security.PrivateKey;
 import java.util.UUID;
 
 
@@ -58,15 +52,8 @@ public class TransactionService {
     @Autowired
     private RestClient restClient;
 
-    @Value("${NEXT_GEN_SECRET}")
-    private String secretKey;
-
-    private SecretKey jwtKey;
-
-    @PostConstruct
-    public void init() {
-        this.jwtKey = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
-    }
+    @Autowired
+    private PrivateKey privateKey;
 
 
     @Transactional
@@ -189,21 +176,24 @@ public class TransactionService {
     public ResponseEntity<?> transferTransaction(@Valid TransferRequestDto transferRequestDto) {
 
         UUID userRequestKey = UUID.randomUUID();
-
-
         try {
 
             boolean isEligible = accountRepository.existsByAccountNumberAndBalanceGreaterThanEqual(transferRequestDto.senderAccountNumber(), transferRequestDto.amount());
 
-
-            //The get can be null
             UserModel user = accountRepository.findByAccountNumber(transferRequestDto.senderAccountNumber()).get().getUser();
 
             if (!isEligible) throw new ArithmeticException("Balance is too low for this transaction");
 
-            String bankToken = Jwts.builder()
+//            PrivateKey privateKey = getPrivateKey.getPrivateKeyFromString();
+
+            String token = Jwts.builder()
                     .subject("NEXT_GEN")
-                    .signWith(jwtKey)
+                    .claim("senderAccountNumber", transferRequestDto.senderAccountNumber())
+                    .claim("amount", transferRequestDto.amount())
+                    .claim("receiverAccountNumber", transferRequestDto.receiverAccountNumber())
+                    .claim("receiverBank", transferRequestDto.receiverBank())
+                    .claim("receiverBank", transferRequestDto.receiverBank())
+                    .signWith(privateKey, Jwts.SIG.RS256)
                     .compact();
 
             TransferModel transactionModel = new TransferModel();
@@ -217,23 +207,9 @@ public class TransactionService {
             transactionModel.setSourceAccountNumber(transferRequestDto.senderAccountNumber());
             transactionModel.setUserRequestKey(userRequestKey);
 
-            System.out.println("This is transaction Obj" + transactionModel);
             transferRepository.save(transactionModel);
 
-            System.out.println("Before token");
-            CentralHubTransferPayload.TokenDetails token = new CentralHubTransferPayload.TokenDetails("NEXT_GEN", bankToken);
-
-
-            CentralHubTransferPayload payload = new CentralHubTransferPayload(
-                    transferRequestDto.senderAccountNumber(),
-                    transferRequestDto.amount(),
-                    transferRequestDto.receiverAccountNumber(),
-                    transferRequestDto.receiverBank(),
-                    userRequestKey,
-                    token
-
-            );
-            System.out.println("After token");
+            CentralHubTransferPayload payload = new CentralHubTransferPayload("NEXT_GEN", token, userRequestKey);
 
             ResponseEntity<IncomingRequestDto<JsonNode>> response = restClient.post()
                     .uri("/api/v1/transaction/testkafka")
@@ -242,8 +218,6 @@ public class TransactionService {
                     .retrieve()
                     .toEntity(new ParameterizedTypeReference<IncomingRequestDto<JsonNode>>() {
                     });
-
-            System.out.println("After rest api " + response);
 
             //May not work as expected but should be check it could be work
             UUID correlationId = response.getBody().correlationId();
@@ -261,7 +235,7 @@ public class TransactionService {
 
         } catch (ArithmeticException e) {
             return ResponseObj.error(402, e.getMessage());
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             transferRepository.updateTransactionStatus(TransferModel.status.REJECTED, e.getMessage(), userRequestKey);
             return ResponseObj.error(500, e.getMessage());
 

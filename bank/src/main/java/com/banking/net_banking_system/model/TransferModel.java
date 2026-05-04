@@ -46,6 +46,7 @@ public class TransferModel {
     private String destinationAccountNumber;
     private String destinationBank;
     private UUID correlationId;
+    @Column(columnDefinition = "varchar(1000)")
     private String errorMsg; ///mew
 
     private UUID userRequestKey;

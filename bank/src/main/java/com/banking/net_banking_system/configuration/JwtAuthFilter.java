@@ -117,15 +117,8 @@ import java.util.ArrayList;
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
-//@Value("${app.jwt.secret:HARDCODED_TEST_SECRET}")
-    @Value("${app.jwt.secret}")
+    @Value("${app.jwt.access_token}")
     private String secretKey;
-
-    @Autowired
-    UserRepository userRepository;
-
-
-
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -136,7 +129,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 //        System.out.println("Before if");
 
 
-
         if (cookies != null) {
             System.out.println("Inside if");
             for (Cookie cookie : cookies) {
@@ -144,7 +136,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     accessToken = cookie.getValue();
                     System.out.println("Accesstoken"+accessToken);
                     break;
-
                 }
             }
         }
@@ -178,7 +169,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
                 System.out.println("Authorities set: " + SecurityContextHolder.getContext().getAuthentication().getAuthorities());
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 // 3. If validation fails, stop the request here!
                 SecurityContextHolder.clearContext();
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
