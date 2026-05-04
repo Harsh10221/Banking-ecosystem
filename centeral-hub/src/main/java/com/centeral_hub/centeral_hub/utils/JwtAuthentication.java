@@ -32,7 +32,6 @@ public class JwtAuthentication {
 
     public String  jwtVerification(String key,String token) throws NoSuchAlgorithmException, InvalidKeySpecException, RuntimeException, JsonProcessingException {
 
-        System.out.println("This is token from jwt " + token);
 
             String publicKeyContent = key
                     .replaceAll("\\n", "")
@@ -42,10 +41,6 @@ public class JwtAuthentication {
             byte[] keyBytes = Base64.getDecoder().decode(publicKeyContent);
             X509EncodedKeySpec keySpec = new X509EncodedKeySpec(keyBytes);
             PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(keySpec);
-
-
-        System.out.println("Jwt verification " +token);
-        System.out.println("Public key" +publicKeyContent);
 
             Claims claims = Jwts.parser()
                     .verifyWith(publicKey)

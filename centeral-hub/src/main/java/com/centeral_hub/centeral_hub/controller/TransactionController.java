@@ -68,7 +68,7 @@ public class TransactionController {
             decodedPayload.setCorrelationId(correlationId);
             decodedPayload.setUserRequestKey(payload.userRequestKey);
 
-            System.out.println("\n Request received in transaction controller \n " + payload);
+            kafkaService.sendTransactionToExecuteWithdraw(decodedPayload);
             ResponseDto obj = new ResponseDto(correlationId);
 
             return ResponseEntity.status(202).body(obj);

@@ -102,7 +102,7 @@ public class KafkaConsumer {
            String bankUrl =  bankUrlMap.get(data.getSenderBank());
 
             ResponseEntity<WithdrawResponseDtoConsumer<JsonNode>> responseObj = restClient.post()
-                    .uri("{bankUrl}/api/transaction/withdraw",bankUrl)
+                    .uri(bankUrl+"/api/transaction/withdraw")
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(payload)
                     .retrieve()
@@ -155,7 +155,7 @@ public class KafkaConsumer {
         } catch (JwtException e) {
             String bankUrl =  bankUrlMap.get(data.getSenderBank());
             restClient.post()
-                    .uri("{bankUrl}/api/transaction/webhook/transfer",bankUrl)
+                    .uri(bankUrl+"/api/transaction/webhook/transfer")
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(Map.of("Jwt", "Invalid token, authorization failed"))
                     .retrieve()
@@ -222,7 +222,7 @@ public class KafkaConsumer {
             String bankUrl =  bankUrlMap.get(depositMsg.getReceiverBank());
 
             ResponseEntity<DepositResponseConsumerDto<String>> responseObj = restClient.post()
-                    .uri("{bankUrl}/api/transaction/deposit",bankUrl)
+                    .uri(bankUrl+"/api/transaction/deposit")
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(payload)
                     .retrieve()
@@ -327,7 +327,7 @@ public class KafkaConsumer {
             String bankUrl =  bankUrlMap.get(msgData.getSenderBank());
 
             ResponseEntity<DepositResponseConsumerDto<JsonNode>> responseObj = restClient.post()
-                    .uri("{bankUrl}/api/transaction/deposit",bankUrl)
+                    .uri(bankUrl+"/api/transaction/deposit")
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(payload)
                     .retrieve()
