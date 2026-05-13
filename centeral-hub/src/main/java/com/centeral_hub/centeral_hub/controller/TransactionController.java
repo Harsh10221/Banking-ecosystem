@@ -1,26 +1,20 @@
 package com.centeral_hub.centeral_hub.controller;
 
-import com.centeral_hub.centeral_hub.model.BankPartners;
-import com.centeral_hub.centeral_hub.repository.BankPartnersRepository;
+import com.centeral_hub.centeral_hub.dtos.KafkaMsgStats;
+import com.centeral_hub.centeral_hub.dtos.TopicMetrics;
+import com.centeral_hub.centeral_hub.model.TransactionModel;
+import com.centeral_hub.centeral_hub.service.BankService;
 import com.centeral_hub.centeral_hub.service.KafkaService;
-import com.centeral_hub.centeral_hub.dtos.KafkaConsumerDto;
-import com.centeral_hub.centeral_hub.utils.JwtAuthentication;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.jsonwebtoken.Claims;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidKeySpecException;
+
 import java.util.Map;
 import java.util.UUID;
 
@@ -33,57 +27,87 @@ public class TransactionController {
     KafkaService kafkaService;
 
     @Autowired
+    BankService bankService;
+
+    @Autowired
     ObjectMapper objectMapper;
-
-    @Autowired
-    JwtAuthentication jwtAuthentication;
-
-    @Autowired
-    BankPartnersRepository bankPartnersRepository;
 
     public record ResponseDto(
             UUID correlationId
     ) {
     }
 
-    public record RequestDto(
-            String bankName,
-            String token,
-            UUID userRequestKey
+    @Data
+    public static class RequestDto { // This is a static nested class
+        private String bankName;
+        private String token;
+        private UUID userRequestKey;
+        private UUID correlationId;
+    }
+
+    public record TransactionStatusRequestDto(
+            UUID correlationId
     ) {
+    }
+
+
+    @PostMapping("/transaction/info")
+    public ResponseEntity<?> getTransactionUpdate(@RequestBody TransactionStatusRequestDto payload) {
+        try {
+
+            TransactionModel transactionModel = bankService.getTransactionUpdate(payload.correlationId);
+            String data = objectMapper.writeValueAsString(transactionModel);
+            return ResponseEntity.status(200).body(data);
+        } catch (RuntimeException e) {
+
+            log.error(e.getMessage());
+            ResponseEntity.status(500).body(e.getMessage());
+
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+
+        return null;
     }
 
     @PostMapping("/testkafka")
     public ResponseEntity<?> test(@RequestBody @Valid RequestDto payload) throws InterruptedException, JsonProcessingException {
-//    public ResponseEntity<Map<String, UUID>> test(@RequestBody @Valid KafkaConsumerDto payload) throws InterruptedException, JsonProcessingException {
+
+        log.info("Received Central Hub dispatch request. Tracking Key: [{}], Source Bank: [{}]", payload.userRequestKey, payload.bankName);
+
         try {
-            com.centeral_hub.centeral_hub.model.BankPartners bankPartners = bankPartnersRepository.findBankPublicKeyByBankName(payload.bankName).orElseThrow(() -> new EntityNotFoundException("No bank found "));
-            String tokenData = jwtAuthentication.jwtVerification(bankPartners.getBankPublicKey(), payload.token);
-
-            KafkaConsumerDto decodedPayload = objectMapper.readValue(tokenData, KafkaConsumerDto.class);
-
             UUID correlationId = UUID.randomUUID();
+            log.info("Hub assigned Correlation ID: [{}]. Linking to Tracking Key: [{}]", correlationId, payload.userRequestKey);
 
-            decodedPayload.setSenderBank(payload.bankName);
-            decodedPayload.setCorrelationId(correlationId);
-            decodedPayload.setUserRequestKey(payload.userRequestKey);
+            payload.setCorrelationId(correlationId);
 
-            kafkaService.sendTransactionToExecuteWithdraw(decodedPayload);
+            log.info("Dispatching transaction to Kafka [Execute Withdraw Topic] for Correlation ID: [{}]...", correlationId);
+            kafkaService.sendTransactionToExecuteWithdraw(payload);
+
             ResponseDto obj = new ResponseDto(correlationId);
 
+            log.info("Successfully dispatched to Kafka. Returning HTTP 202 (Accepted) for Correlation ID: [{}]", correlationId);
             return ResponseEntity.status(202).body(obj);
-        } catch (RuntimeException e) {
-            log.error("Error occur ", e);
-            return ResponseEntity.status(500).body(Map.of("message", e.getMessage()));
-        } catch (NoSuchAlgorithmException e) {
-            log.error("Error occur ", e);
 
-            throw new RuntimeException(e);
-        } catch (InvalidKeySpecException e) {
-            log.error("Error occur ", e);
-            throw new RuntimeException(e);
+        } catch (RuntimeException e) {
+            log.error("CRITICAL: Runtime failure during Hub processing for Tracking Key: [{}]. Error: {}", payload.userRequestKey, e.getMessage(), e);
+            return ResponseEntity.status(500).body(Map.of("message", e.getMessage()));
+
         }
     }
 
 
+    @GetMapping("/kafka/metric/stats")
+    public ResponseEntity<KafkaMsgStats> getKafkaStats() {
+        TopicMetrics withdrawTopic = kafkaService.getCompleteTopicMetrics("execute-withdraw", "banking-group");
+        TopicMetrics depositTopic = kafkaService.getCompleteTopicMetrics("execute-deposit", "banking-group");
+        TopicMetrics compensationTopic = kafkaService.getCompleteTopicMetrics("execute-compensation", "banking-group");
+
+        KafkaMsgStats responsePayload = new KafkaMsgStats("METRICS_RESULT", new KafkaMsgStats.data(withdrawTopic.totalOnDisk, depositTopic.successfullyProcessed, compensationTopic.successfullyProcessed));
+
+        return ResponseEntity.ok().body(responsePayload);
+    }
+
+    ;
 }
