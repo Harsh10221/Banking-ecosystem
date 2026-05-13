@@ -13,7 +13,6 @@ import java.util.UUID;
 public class TransferModel {
 
 
-
     @PrePersist
     protected void onCreate() {
         this.createdAt = Instant.now();
@@ -24,7 +23,7 @@ public class TransferModel {
         return createdAt;
     }
 
-    public enum status {PENDING, APPROVED, REJECTED, EXPIRED}
+    public enum status {PENDING, APPROVED, REJECTED, EXPIRED,SUCCESS}
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

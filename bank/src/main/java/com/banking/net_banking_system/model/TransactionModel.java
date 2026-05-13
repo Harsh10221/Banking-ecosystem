@@ -39,7 +39,6 @@ public class TransactionModel {
     @NotBlank(message = "From is required")
     private String sender;
 
-    @NotBlank(message = "To is required")
     private String receiver;
 
     @Enumerated(EnumType.STRING)

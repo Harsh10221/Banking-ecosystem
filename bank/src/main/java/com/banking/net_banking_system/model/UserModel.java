@@ -10,10 +10,12 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.ToString;
 
 
 @Entity
 @Data
+@ToString(exclude = "loans")
 @Table(name = "users")
 public class UserModel {
 
